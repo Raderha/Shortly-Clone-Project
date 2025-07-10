@@ -56,7 +56,7 @@ GET /api/videos/search?keyword=검색어
 GET /api/videos/tag/{tagName}
 DELETE /api/videos/{videoId}
 
-======================================================================================================
+
 
 프론트측 구조(Expo기반의 React Native)
 App.tsx
