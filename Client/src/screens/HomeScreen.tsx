@@ -1,10 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { SafeAreaView as SafeAreaInsetView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+
+// Stack 네비게이터의 스크린 이름 타입 정의
+type RootStackParamList = {
+  Home: undefined;
+  Upload: undefined;
+  Profile: undefined;
+  VideoDetail: undefined;
+};
 
 export default function HomeScreen() {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaInsetView style={styles.container} edges={["top", "left", "right", "bottom"]}>
       {/* 상단 바 */}
       <View style={styles.header}>
         <Text style={styles.logo}>Shortly</Text>
@@ -24,20 +36,25 @@ export default function HomeScreen() {
 
       {/* 영상 그리드 */}
       <View style={styles.grid}>
-        <View style={styles.videoCard}><Text>영상 1</Text></View>
-        <View style={styles.videoCard}><Text>영상 2</Text></View>
-        <View style={styles.videoCard}><Text>영상 3</Text></View>
-        <View style={styles.videoCard}><Text>영상 4</Text></View>
+        {[1,2,3,4].map((n) => (
+          <TouchableOpacity key={n} style={styles.videoCard} onPress={() => navigation.navigate('VideoDetail')}>
+            <Text>영상 {n}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* 하단 탭바 */}
       <View style={styles.tabBar}>
         <Icon name="home-outline" size={28} />
-        <Icon name="add-circle-outline" size={28} />
+        <TouchableOpacity onPress={() => navigation.navigate('Upload')}>
+          <Icon name="add-circle-outline" size={28} />
+        </TouchableOpacity>
         <Icon name="folder-outline" size={28} />
-        <Icon name="person-outline" size={28} />
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <Icon name="person-outline" size={28} />
+        </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </SafeAreaInsetView>
   );
 }
 
@@ -52,5 +69,5 @@ const styles = StyleSheet.create({
     addBtn: { backgroundColor: '#eee', borderRadius: 16, padding: 6, justifyContent: 'center', alignItems: 'center' },
     grid: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', alignItems: 'flex-start', padding: 12 },
     videoCard: { width: '45%', aspectRatio: 1, backgroundColor: '#f5f5f5', borderRadius: 12, justifyContent: 'center', alignItems: 'center', margin: 8 },
-    tabBar: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1, borderColor: '#eee' },
+    tabBar: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1, borderColor: '#eee', paddingBottom: 12 },
   });
