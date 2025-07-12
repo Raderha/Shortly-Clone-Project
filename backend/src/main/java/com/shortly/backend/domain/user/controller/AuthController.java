@@ -27,18 +27,22 @@ public class AuthController {
     
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        Authentication authentication = userService.login(request);
-        UserResponse userResponse = userService.getCurrentUser();
-        
-        // JWT 토큰 생성 (실제 구현에서는 JwtService 사용)
-        String token = "JWT_TOKEN_" + System.currentTimeMillis();
-        
-        LoginResponse loginResponse = LoginResponse.builder()
-                .token(token)
-                .user(userResponse)
-                .build();
-        
-        return ApiResponse.success("Login successful", loginResponse);
+        try {
+            Authentication authentication = userService.login(request);
+            UserResponse userResponse = userService.getCurrentUser();
+            
+            // JWT 토큰 생성 (실제 구현에서는 JwtService 사용)
+            String token = "JWT_TOKEN_" + System.currentTimeMillis();
+            
+            LoginResponse loginResponse = LoginResponse.builder()
+                    .token(token)
+                    .user(userResponse)
+                    .build();
+            
+            return ApiResponse.success("Login successful", loginResponse);
+        } catch (Exception e) {
+            return ApiResponse.error("Login failed: " + e.getMessage());
+        }
     }
     
     @PostMapping("/logout")
