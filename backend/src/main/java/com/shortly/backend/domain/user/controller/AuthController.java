@@ -11,6 +11,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import io.jsonwebtoken.Jwts;
+import java.util.Date;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -30,15 +34,23 @@ public class AuthController {
         try {
             Authentication authentication = userService.login(request);
             UserResponse userResponse = userService.getCurrentUser();
-            
-            // JWT 토큰 생성 (실제 구현에서는 JwtService 사용)
-            String token = "JWT_TOKEN_" + System.currentTimeMillis();
-            
+
+            // JJWT 0.11.5 방식으로 JWT 토큰 생성
+            String secretKey = "shortly-secret-key-shortly-secret-key-shortly-secret-key-shortly-secret-key";
+            Instant now = Instant.now();
+            String token = Jwts.builder()
+                .claim("email", userResponse.getEmail())
+                .claim("userId", userResponse.getId())
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(now.plus(24, ChronoUnit.HOURS)))
+                .signWith(io.jsonwebtoken.SignatureAlgorithm.HS256, secretKey.getBytes())
+                .compact();
+
             LoginResponse loginResponse = LoginResponse.builder()
                     .token(token)
                     .user(userResponse)
                     .build();
-            
+
             return ApiResponse.success("Login successful", loginResponse);
         } catch (Exception e) {
             return ApiResponse.error("Login failed: " + e.getMessage());

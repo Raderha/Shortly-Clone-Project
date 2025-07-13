@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface VideoRepository extends JpaRepository<Video, Long> {
     
@@ -22,4 +24,6 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
            "LOWER(v.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(v.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<Video> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+    
+    List<Video> findByOwnerOrderByCreatedAtDesc(User owner);
 } 

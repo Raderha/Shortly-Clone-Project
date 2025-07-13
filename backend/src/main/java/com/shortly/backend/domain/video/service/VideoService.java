@@ -6,7 +6,9 @@ import com.shortly.backend.domain.video.dto.VideoResponse;
 import com.shortly.backend.domain.video.dto.VideoSearchResponse;
 import com.shortly.backend.domain.video.entity.Tag;
 import com.shortly.backend.domain.video.entity.Video;
+import com.shortly.backend.domain.video.entity.VideoLike;
 import com.shortly.backend.domain.video.repository.TagRepository;
+import com.shortly.backend.domain.video.repository.VideoLikeRepository;
 import com.shortly.backend.domain.video.repository.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,6 +28,7 @@ public class VideoService {
     
     private final VideoRepository videoRepository;
     private final TagRepository tagRepository;
+    private final VideoLikeRepository videoLikeRepository;
     private final UserService userService;
     private final FileService fileService;
     
@@ -107,5 +110,63 @@ public class VideoService {
         }
         
         videoRepository.delete(video);
+    }
+    
+    public List<VideoResponse> getMyVideos() {
+        User currentUser = userService.getCurrentUserEntity();
+        List<Video> videos = videoRepository.findByOwnerOrderByCreatedAtDesc(currentUser);
+        return videos.stream()
+                .map(VideoResponse::from)
+                .collect(Collectors.toList());
+    }
+    
+    public List<VideoResponse> getLikedVideos() {
+        User currentUser = userService.getCurrentUserEntity();
+        List<Video> videos = videoLikeRepository.findLikedVideosByUser(currentUser);
+        return videos.stream()
+                .map(VideoResponse::from)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional
+    public void likeVideo(Long videoId) {
+        User currentUser = userService.getCurrentUserEntity();
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new RuntimeException("Video not found"));
+        
+        // 이미 좋아요했는지 확인
+        if (videoLikeRepository.existsByUserAndVideo(currentUser, video)) {
+            throw new RuntimeException("Video already liked");
+        }
+        
+        // 좋아요 생성
+        VideoLike videoLike = VideoLike.builder()
+                .user(currentUser)
+                .video(video)
+                .build();
+        
+        videoLikeRepository.save(videoLike);
+    }
+    
+    @Transactional
+    public void unlikeVideo(Long videoId) {
+        User currentUser = userService.getCurrentUserEntity();
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new RuntimeException("Video not found"));
+        
+        // 좋아요 찾기
+        VideoLike videoLike = videoLikeRepository.findByUserAndVideo(currentUser, video)
+                .orElseThrow(() -> new RuntimeException("Video not liked"));
+        
+        // 좋아요 삭제
+        videoLikeRepository.delete(videoLike);
+    }
+    
+    public boolean isVideoLiked(Long videoId) {
+        User currentUser = userService.getCurrentUserEntity();
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new RuntimeException("Video not found"));
+        
+        return videoLikeRepository.existsByUserAndVideo(currentUser, video);
     }
 } 

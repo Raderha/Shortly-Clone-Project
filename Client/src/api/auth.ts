@@ -1,3 +1,5 @@
+import { useAuth } from '../contexts/AuthContext';
+
 const API_BASE_URL = 'http://222.102.217.76:8080/api';
 
 export interface SignupRequest {
@@ -20,6 +22,21 @@ export interface AuthResponse {
     username: string;
     email: string;
   };
+}
+
+export interface VideoResponse {
+  id: number;
+  title: string;
+  description: string;
+  url: string;
+  thumbnailUrl: string;
+  owner: {
+    id: number;
+    username: string;
+    email: string;
+  };
+  tags: string[];
+  createdAt: string;
 }
 
 // 회원가입 API
@@ -87,5 +104,98 @@ export const login = async (data: LoginRequest): Promise<AuthResponse> => {
       success: false,
       message: '네트워크 오류가 발생했습니다.',
     };
+  }
+}; 
+
+// 토큰을 받아서 헤더에 추가하는 fetch wrapper
+const authFetch = async (url: string, options: any = {}, token?: string) => {
+  const headers = {
+    ...(options.headers || {}),
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+  return fetch(url, { ...options, headers });
+};
+
+// 사용자의 동영상 가져오기
+export const getMyVideos = async (token?: string): Promise<VideoResponse[]> => {
+  try {
+    const response = await authFetch(`${API_BASE_URL}/videos/my-videos`, { method: 'GET' }, token);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('getMyVideos HTTP 오류:', response.status, response.statusText, errorText);
+      return [];
+    }
+    const result = await response.json();
+    return result.data || [];
+  } catch (error) {
+    console.error('getMyVideos 네트워크 오류:', error);
+    return [];
+  }
+};
+
+// 좋아요한 영상 가져오기
+export const getLikedVideos = async (token?: string): Promise<VideoResponse[]> => {
+  try {
+    const response = await authFetch(`${API_BASE_URL}/videos/liked-videos`, { method: 'GET' }, token);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('getLikedVideos HTTP 오류:', response.status, response.statusText, errorText);
+      return [];
+    }
+    const result = await response.json();
+    return result.data || [];
+  } catch (error) {
+    console.error('getLikedVideos 네트워크 오류:', error);
+    return [];
+  }
+};
+
+// 영상 좋아요
+export const likeVideo = async (videoId: number, token?: string): Promise<boolean> => {
+  try {
+    const response = await authFetch(`${API_BASE_URL}/videos/${videoId}/like`, { method: 'POST' }, token);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('likeVideo HTTP 오류:', response.status, response.statusText, errorText);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('likeVideo 네트워크 오류:', error);
+    return false;
+  }
+};
+
+// 영상 좋아요 취소
+export const unlikeVideo = async (videoId: number, token?: string): Promise<boolean> => {
+  try {
+    const response = await authFetch(`${API_BASE_URL}/videos/${videoId}/like`, { method: 'DELETE' }, token);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('unlikeVideo HTTP 오류:', response.status, response.statusText, errorText);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('unlikeVideo 네트워크 오류:', error);
+    return false;
+  }
+};
+
+// 영상 좋아요 상태 확인
+export const isVideoLiked = async (videoId: number, token?: string): Promise<boolean> => {
+  try {
+    const response = await authFetch(`${API_BASE_URL}/videos/${videoId}/is-liked`, { method: 'GET' }, token);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('isVideoLiked HTTP 오류:', response.status, response.statusText, errorText);
+      return false;
+    }
+    const result = await response.json();
+    return result.data || false;
+  } catch (error) {
+    console.error('isVideoLiked 네트워크 오류:', error);
+    return false;
   }
 }; 

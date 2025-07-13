@@ -69,6 +69,16 @@ public class UserService {
     
     public User getCurrentUserEntity() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("User not authenticated");
+        }
+        
+        // Authentication의 principal이 User 객체인지 확인
+        if (authentication.getPrincipal() instanceof User) {
+            return (User) authentication.getPrincipal();
+        }
+        
+        // principal이 이메일 문자열인 경우 (기존 방식)
         String email = authentication.getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));

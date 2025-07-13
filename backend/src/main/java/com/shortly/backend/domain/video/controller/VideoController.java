@@ -51,4 +51,34 @@ public class VideoController {
         videoService.deleteVideo(videoId);
         return ApiResponse.success("Video deleted successfully");
     }
+    
+    @GetMapping("/my-videos")
+    public ApiResponse<List<VideoResponse>> getMyVideos() {
+        List<VideoResponse> videos = videoService.getMyVideos();
+        return ApiResponse.success("My videos retrieved successfully", videos);
+    }
+    
+    @GetMapping("/liked-videos")
+    public ApiResponse<List<VideoResponse>> getLikedVideos() {
+        List<VideoResponse> videos = videoService.getLikedVideos();
+        return ApiResponse.success("Liked videos retrieved successfully", videos);
+    }
+    
+    @PostMapping("/{videoId}/like")
+    public ApiResponse<Void> likeVideo(@PathVariable Long videoId) {
+        videoService.likeVideo(videoId);
+        return ApiResponse.success("Video liked successfully");
+    }
+    
+    @DeleteMapping("/{videoId}/like")
+    public ApiResponse<Void> unlikeVideo(@PathVariable Long videoId) {
+        videoService.unlikeVideo(videoId);
+        return ApiResponse.success("Video unliked successfully");
+    }
+    
+    @GetMapping("/{videoId}/is-liked")
+    public ApiResponse<Boolean> isVideoLiked(@PathVariable Long videoId) {
+        boolean isLiked = videoService.isVideoLiked(videoId);
+        return ApiResponse.success("Like status retrieved successfully", isLiked);
+    }
 } 

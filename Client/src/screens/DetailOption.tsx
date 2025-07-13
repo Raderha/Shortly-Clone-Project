@@ -4,6 +4,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { useAuth } from '../contexts/AuthContext';
 
 type RootStackParamList = {
   Home: undefined;
@@ -22,17 +23,17 @@ const OPTIONS = [
   '일반',
 ];
 
-const USER_NAME = '사용자 명';
-
 const DetailOption = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const { user } = useAuth();
+  
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
       {/* 상단 유저 정보 및 뒤로가기 */}
       <View style={styles.header}>
         <View style={styles.userInfo}>
           <Icon name="account-circle" size={38} color="#222" />
-          <Text style={styles.userName}>{USER_NAME}</Text>
+          <Text style={styles.userName}>{user?.username || '사용자'}</Text>
         </View>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={28} color="#222" />
