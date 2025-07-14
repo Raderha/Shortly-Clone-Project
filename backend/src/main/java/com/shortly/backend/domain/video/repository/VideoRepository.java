@@ -26,4 +26,6 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     Page<Video> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
     
     List<Video> findByOwnerOrderByCreatedAtDesc(User owner);
+    
+    Page<Video> findAllByOrderByCreatedAtDesc(Pageable pageable);
 } 

@@ -35,6 +35,10 @@ public class Video {
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
     
+    public void setThumbnailUrl(String thumbnailUrl) {
+        this.thumbnailUrl = thumbnailUrl;
+    }
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;

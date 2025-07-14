@@ -37,6 +37,14 @@ public class VideoController {
         return videoService.searchVideos(keyword, page, size);
     }
     
+    @GetMapping
+    public VideoSearchResponse getAllVideos(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
+        
+        return videoService.getAllVideos(page, size);
+    }
+    
     @GetMapping("/tag/{tagName}")
     public VideoSearchResponse getVideosByTag(
             @PathVariable String tagName,
@@ -80,5 +88,11 @@ public class VideoController {
     public ApiResponse<Boolean> isVideoLiked(@PathVariable Long videoId) {
         boolean isLiked = videoService.isVideoLiked(videoId);
         return ApiResponse.success("Like status retrieved successfully", isLiked);
+    }
+
+    @PostMapping("/admin/generate-thumbnails")
+    public ApiResponse<Void> generateThumbnailsForAllVideos() {
+        videoService.generateThumbnailsForAllVideos();
+        return ApiResponse.success("썸네일 일괄 생성 완료");
     }
 } 

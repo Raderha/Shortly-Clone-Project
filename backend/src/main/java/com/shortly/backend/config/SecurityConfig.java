@@ -44,6 +44,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/videos/search").permitAll()
                 .requestMatchers("/api/videos/tag/**").permitAll()
+                .requestMatchers("/api/videos").permitAll()
+                .requestMatchers("/api/videos/admin/generate-thumbnails").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

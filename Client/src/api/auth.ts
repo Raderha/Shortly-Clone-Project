@@ -198,4 +198,42 @@ export const isVideoLiked = async (videoId: number, token?: string): Promise<boo
     console.error('isVideoLiked 네트워크 오류:', error);
     return false;
   }
+};
+
+// 모든 영상 가져오기
+export const getAllVideos = async (page: number = 0, size: number = 20): Promise<{
+  videos: VideoResponse[];
+  total: number;
+  page: number;
+  perPage: number;
+}> => {
+  try {
+    const url = `${API_BASE_URL}/videos?page=${page}&size=${size}`;
+    console.log('[getAllVideos] 요청 URL:', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('getAllVideos HTTP 오류:', response.status, response.statusText, errorText);
+      return { videos: [], total: 0, page, perPage: size };
+    }
+    
+    const result = await response.json();
+    console.log('[getAllVideos] 응답 전체:', result);
+    if (result && Array.isArray(result.videos)) {
+      console.log(`[getAllVideos] videos 배열 길이: ${result.videos.length}`);
+    } else {
+      console.log('[getAllVideos] videos 배열이 없음 또는 잘못된 응답');
+    }
+    // result.data가 아니라 result 자체를 반환
+    return result || { videos: [], total: 0, page, perPage: size };
+  } catch (error) {
+    console.error('getAllVideos 네트워크 오류:', error);
+    return { videos: [], total: 0, page, perPage: size };
+  }
 }; 

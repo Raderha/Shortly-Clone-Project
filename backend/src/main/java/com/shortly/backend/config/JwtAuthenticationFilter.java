@@ -35,8 +35,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (token != null) {
             try {
-                Claims claims = Jwts.parser()
+                Claims claims = Jwts.parserBuilder()
                     .setSigningKey(SECRET_KEY.getBytes())
+                    .build()
                     .parseClaimsJws(token)
                     .getBody();
                 System.out.println("JWT Filter - Claims parsed successfully: " + claims);
