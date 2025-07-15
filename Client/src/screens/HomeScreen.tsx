@@ -78,11 +78,13 @@ export default function HomeScreen() {
             <Text style={styles.emptyText}>업로드된 영상이 없습니다</Text>
           </View>
         ) : (
-          videos.map((video) => (
+          videos.map((video, index) => (
             <TouchableOpacity 
               key={video.id} 
               style={styles.videoCard} 
-              onPress={() => navigation.navigate('VideoDetail', { videoId: video.id })}
+              onPress={() => navigation.navigate('VideoDetail', { 
+                videoId: video.id
+              })}
             >
               {video.thumbnailUrl ? (
                 <Image 

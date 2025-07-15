@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/videos/search").permitAll()
                 .requestMatchers("/api/videos/tag/**").permitAll()
                 .requestMatchers("/api/videos").permitAll()
+                .requestMatchers("/api/videos/{videoId}").permitAll()
                 .requestMatchers("/api/videos/admin/generate-thumbnails").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
                 .anyRequest().authenticated()

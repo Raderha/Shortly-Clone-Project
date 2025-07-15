@@ -12,17 +12,24 @@ import { getMyVideos, getLikedVideos, VideoResponse } from '../api/auth';
    Home: undefined;
    Upload: undefined;
    Profile: undefined;
-   VideoDetail: undefined;
+   VideoDetail: { videoId: number; allVideos: VideoResponse[]; currentIndex: number };
    DetailOption: undefined; 
  };
 
 const { width } = Dimensions.get('window');
-const GRID_GAP = 16;
-const GRID_COLUMNS = 3;
-const THUMB_SIZE = (width - 40 - (GRID_GAP * (GRID_COLUMNS - 1))) / GRID_COLUMNS; // 40=paddingHorizontal*2
+const THUMB_SIZE = 160;
+const THUMB_GAP = 16;
 
-const renderThumb = (video: VideoResponse, idx: number) => (
-  <View key={video.id} style={styles.thumbBox}>
+const renderThumb = (video: VideoResponse, idx: number, navigation: any, allVideos: VideoResponse[]) => (
+  <TouchableOpacity 
+    key={video.id} 
+    style={styles.thumbBox}
+    onPress={() => navigation.navigate('VideoDetail', { 
+      videoId: video.id, 
+      allVideos: allVideos, 
+      currentIndex: idx 
+    })}
+  >
     {video.thumbnailUrl ? (
       <Image 
         source={{ uri: `http://222.102.217.76:8080/uploads/thumbnails/${video.thumbnailUrl}` }} 
@@ -32,13 +39,17 @@ const renderThumb = (video: VideoResponse, idx: number) => (
     ) : (
       <Icon name="image" size={40} color="#bbb" />
     )}
-  </View>
+  </TouchableOpacity>
 );
 
-const renderGrid = (data: VideoResponse[]) => (
-  <View style={styles.thumbGrid}>
-    {data.map(renderThumb)}
-  </View>
+const renderHorizontalList = (data: VideoResponse[], navigation: any) => (
+  <ScrollView 
+    horizontal 
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={styles.horizontalList}
+  >
+    {data.map((video, idx) => renderThumb(video, idx, navigation, data))}
+  </ScrollView>
 );
 
 const ProfileScreen = () => {
@@ -78,11 +89,11 @@ const ProfileScreen = () => {
 
         {/* 내 동영상 */}
         <Text style={styles.sectionTitle}>내 동영상</Text>
-        {!isLoading && (myVideos.length > 0 ? renderGrid(myVideos) : <View style={styles.thumbGrid} />)}
+        {!isLoading && (myVideos.length > 0 ? renderHorizontalList(myVideos, navigation) : <View style={styles.emptyContainer} />)}
 
         {/* 좋아요 */}
-        <Text style={styles.sectionTitle}>좋아요</Text>
-        {!isLoading && (likedVideos.length > 0 ? renderGrid(likedVideos) : <View style={styles.thumbGrid} />)}
+        <Text style={[styles.sectionTitle, { marginTop: 70 }]}>좋아요</Text>
+        {!isLoading && (likedVideos.length > 0 ? renderHorizontalList(likedVideos, navigation) : <View style={styles.emptyContainer} />)}
       </ScrollView>
 
       {/* 하단 네비게이션 */}
@@ -100,12 +111,21 @@ const ProfileScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 20, paddingBottom: 32 },
-  userInfo: { flexDirection: 'row', alignItems: 'center', marginTop: 28, marginBottom: 18 },
+  userInfo: { flexDirection: 'row', alignItems: 'center', marginTop: 28, marginBottom: 24 },
   userName: { marginLeft: 14, fontSize: 20, fontWeight: 'bold', color: '#222' },
-  sectionTitle: { fontSize: 17, fontWeight: 'bold', marginTop: 18, marginBottom: 10, color: '#222' },
-  thumbGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
-  thumbBox: { width: THUMB_SIZE, height: THUMB_SIZE, backgroundColor: '#eee', borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: GRID_GAP, marginBottom: GRID_GAP },
+  sectionTitle: { fontSize: 17, fontWeight: 'bold', marginTop: 32, marginBottom: 16, color: '#222' },
+  horizontalList: { paddingRight: 20, marginBottom: 8 },
+  thumbBox: { 
+    width: THUMB_SIZE, 
+    height: THUMB_SIZE, 
+    backgroundColor: '#eee', 
+    borderRadius: 12, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginRight: THUMB_GAP 
+  },
   thumbnail: { width: '100%', height: '100%', borderRadius: 12 },
+  emptyContainer: { height: THUMB_SIZE, marginBottom: 8 },
   bottomBar: { position: 'absolute', left: 0, right: 0, bottom: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 40, paddingBottom: 28, backgroundColor: '#fff' },
 });
 

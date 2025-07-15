@@ -45,6 +45,12 @@ public class VideoController {
         return videoService.getAllVideos(page, size);
     }
     
+    @GetMapping("/{videoId}")
+    public ApiResponse<VideoResponse> getVideoById(@PathVariable Long videoId) {
+        VideoResponse video = videoService.getVideoById(videoId);
+        return ApiResponse.success("Video retrieved successfully", video);
+    }
+    
     @GetMapping("/tag/{tagName}")
     public VideoSearchResponse getVideosByTag(
             @PathVariable String tagName,

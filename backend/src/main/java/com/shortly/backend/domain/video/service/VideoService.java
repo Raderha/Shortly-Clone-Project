@@ -113,6 +113,12 @@ public class VideoService {
                 .build();
     }
     
+    public VideoResponse getVideoById(Long videoId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new RuntimeException("Video not found"));
+        return VideoResponse.from(video);
+    }
+    
     public VideoSearchResponse getVideosByTag(String tagName, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Video> videoPage = videoRepository.findByTagName(tagName, pageable);
