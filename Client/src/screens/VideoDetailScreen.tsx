@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, FlatList, Alert, ActivityIndicator } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { VideoResponse, likeVideo, unlikeVideo, isVideoLiked } from '../api/auth';
+import { VideoResponse, likeVideo, unlikeVideo, isVideoLiked, getAllVideos } from '../api/auth';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +18,9 @@ interface VideoItemProps {
   isLikeLoading: boolean;
   onBack: () => void;
   onSubscribe: () => void;
+  onVideoEnd: () => void;
+  onNextVideo: () => void;
+  onPrevVideo: () => void;
 }
 
 const VideoItem: React.FC<VideoItemProps> = ({ 
@@ -27,13 +30,18 @@ const VideoItem: React.FC<VideoItemProps> = ({
   isLiked, 
   isLikeLoading, 
   onBack, 
-  onSubscribe
+  onSubscribe,
+  onVideoEnd,
+  onNextVideo,
+  onPrevVideo
 }) => {
   const insets = useSafeAreaInsets();
   const videoRef = useRef<Video>(null);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [lastTap, setLastTap] = useState(0);
+  const tapTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     if (status.isLoaded) {
@@ -47,6 +55,12 @@ const VideoItem: React.FC<VideoItemProps> = ({
       
       setIsVideoLoading(false);
       setIsPlaying(status.isPlaying);
+      
+      // 영상이 끝났을 때 다음 영상으로 넘어가기
+      if (status.didJustFinish) {
+        console.log('영상 재생 완료, 다음 영상으로 넘어갑니다');
+        onVideoEnd();
+      }
     } else if (status.error) {
       console.error('Video error:', status.error);
       setHasError(true);
@@ -80,6 +94,44 @@ const VideoItem: React.FC<VideoItemProps> = ({
     setIsVideoLoading(true);
   };
 
+  const handleCenterTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300; // 더블 터치 감지 시간 (ms)
+
+    if (lastTap && (now - lastTap) < DOUBLE_TAP_DELAY) {
+      // 더블 터치 - 좋아요
+      if (tapTimeout.current) {
+        clearTimeout(tapTimeout.current);
+        tapTimeout.current = null;
+      }
+      setLastTap(0);
+      console.log('더블 터치 감지 - 좋아요');
+      onLikePress();
+    } else {
+      setLastTap(now);
+      if (tapTimeout.current) {
+        clearTimeout(tapTimeout.current);
+      }
+      tapTimeout.current = setTimeout(() => {
+        // 싱글 터치 - 재생/일시정지
+        console.log('싱글 터치 감지 - 재생/일시정지');
+        if (isPlaying) {
+          videoRef.current?.pauseAsync();
+        } else {
+          videoRef.current?.playAsync();
+        }
+        tapTimeout.current = null;
+      }, DOUBLE_TAP_DELAY);
+    }
+  };
+
+  // 언마운트 시 타이머 정리
+  React.useEffect(() => {
+    return () => {
+      if (tapTimeout.current) clearTimeout(tapTimeout.current);
+    };
+  }, []);
+
   return (
     <View style={styles.container}>
       {!hasError ? (
@@ -88,9 +140,9 @@ const VideoItem: React.FC<VideoItemProps> = ({
           source={{ uri: `${SERVER_URL}/uploads/videos/${video.url}` }}
           style={StyleSheet.absoluteFill}
           resizeMode={ResizeMode.CONTAIN}
-          shouldPlay={true}
+          shouldPlay={isFocused}
           useNativeControls={false}
-          isLooping={true}
+          isLooping={false}
           isMuted={false}
           onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
           onLoadStart={handleLoadStart}
@@ -115,6 +167,33 @@ const VideoItem: React.FC<VideoItemProps> = ({
           <Text style={styles.loadingText}>영상을 불러오는 중...</Text>
         </View>
       )}
+
+      {/* 상단 터치 영역 - 이전 영상 */}
+      <TouchableOpacity 
+        style={styles.topTouchArea} 
+        onPress={() => {
+          console.log('상단 터치 감지 - 이전 영상으로 이동');
+          onPrevVideo();
+        }}
+        activeOpacity={0.8}
+      />
+
+      {/* 중간 터치 영역 - 재생/일시정지 + 더블 터치 좋아요 */}
+      <TouchableOpacity 
+        style={styles.centerTouchArea} 
+        onPress={handleCenterTap}
+        activeOpacity={0.8}
+      />
+
+      {/* 하단 터치 영역 - 다음 영상 */}
+      <TouchableOpacity 
+        style={styles.bottomTouchArea} 
+        onPress={() => {
+          console.log('하단 터치 감지 - 다음 영상으로 이동');
+          onNextVideo();
+        }}
+        activeOpacity={0.8}
+      />
 
       {/* 상단 바 */}
       <View style={styles.topBar}>
@@ -174,50 +253,52 @@ const VideoDetailScreen = () => {
   const navigation = useNavigation();
   const { videoId } = route.params as { videoId: number };
   const { token } = useAuth();
-  const [video, setVideo] = useState<VideoResponse | null>(null);
+  const [videos, setVideos] = useState<VideoResponse[]>([]);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // 비디오 정보 가져오기
+  // 영상 목록 가져오기
   useEffect(() => {
-    const fetchVideo = async () => {
+    const fetchVideos = async () => {
       try {
-        console.log('비디오 정보 요청 시작:', videoId);
-        const response = await fetch(`${SERVER_URL}/api/videos/${videoId}`);
-        if (response.ok) {
-          const result = await response.json();
-          console.log('비디오 정보 응답:', result);
-          if (result.success && result.data) {
-            setVideo(result.data);
-          } else {
-            console.error('비디오 정보 응답 형식 오류:', result);
-          }
-        } else {
-          console.error('비디오 정보 요청 실패:', response.status);
+        setLoading(true);
+        const result = await getAllVideos(0, 50); // 더 많은 영상 가져오기
+        console.log('영상 목록 응답:', result);
+        setVideos(result.videos);
+        
+        // 현재 영상의 인덱스 찾기
+        const index = result.videos.findIndex(video => video.id === videoId);
+        if (index !== -1) {
+          setCurrentVideoIndex(index);
         }
       } catch (error) {
-        console.error('비디오 정보 가져오기 실패:', error);
+        console.error('영상 목록 가져오기 실패:', error);
+        Alert.alert('오류', '영상 목록을 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
       }
     };
-    fetchVideo();
+    fetchVideos();
   }, [videoId]);
 
   // 좋아요 상태 확인
   useEffect(() => {
     const checkLikeStatus = async () => {
-      if (!token || !video) return;
+      if (!token || !videos[currentVideoIndex]) return;
       try {
-        const liked = await isVideoLiked(video.id, token);
+        const liked = await isVideoLiked(videos[currentVideoIndex].id, token);
         setIsLiked(liked);
       } catch (error) {
         console.error('좋아요 상태 확인 실패:', error);
       }
     };
     checkLikeStatus();
-  }, [token, video]);
+  }, [token, videos, currentVideoIndex]);
 
   const handleLikePress = useCallback(async () => {
-    if (!token || !video) {
+    if (!token || !videos[currentVideoIndex]) {
       Alert.alert('로그인 필요', '좋아요 기능을 사용하려면 로그인이 필요합니다.');
       return;
     }
@@ -227,10 +308,10 @@ const VideoDetailScreen = () => {
     try {
       let success = false;
       if (isLiked) {
-        success = await unlikeVideo(video.id, token);
+        success = await unlikeVideo(videos[currentVideoIndex].id, token);
         if (success) setIsLiked(false);
       } else {
-        success = await likeVideo(video.id, token);
+        success = await likeVideo(videos[currentVideoIndex].id, token);
         if (success) setIsLiked(true);
       }
       if (!success) {
@@ -241,14 +322,65 @@ const VideoDetailScreen = () => {
     } finally {
       setIsLikeLoading(false);
     }
-  }, [token, video, isLiked, isLikeLoading]);
+  }, [token, videos, currentVideoIndex, isLiked, isLikeLoading]);
 
-  if (!video || !video.url) {
+  const handleVideoEnd = useCallback(() => {
+    // 다음 영상으로 넘어가기
+    if (currentVideoIndex < videos.length - 1) {
+      setCurrentVideoIndex(currentVideoIndex + 1);
+    } else {
+      // 마지막 영상이면 처음으로 돌아가기
+      setCurrentVideoIndex(0);
+    }
+  }, [currentVideoIndex, videos.length]);
+
+  const handleNextVideo = useCallback(() => {
+    console.log('다음 영상으로 이동');
+    if (currentVideoIndex < videos.length - 1) {
+      setCurrentVideoIndex(currentVideoIndex + 1);
+    } else {
+      // 마지막 영상이면 처음으로 돌아가기
+      setCurrentVideoIndex(0);
+    }
+  }, [currentVideoIndex, videos.length]);
+
+  const handlePrevVideo = useCallback(() => {
+    console.log('이전 영상으로 이동');
+    if (currentVideoIndex > 0) {
+      setCurrentVideoIndex(currentVideoIndex - 1);
+    } else {
+      // 첫 번째 영상이면 마지막으로 이동
+      setCurrentVideoIndex(videos.length - 1);
+    }
+  }, [currentVideoIndex, videos.length]);
+
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF6B57" />
         <Text style={styles.loadingText}>영상을 불러오는 중...</Text>
-        {video && !video.url && (
+      </View>
+    );
+  }
+
+  if (videos.length === 0) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>영상을 찾을 수 없습니다</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.retryButtonText}>돌아가기</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const currentVideo = videos[currentVideoIndex];
+  if (!currentVideo || !currentVideo.url) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF6B57" />
+        <Text style={styles.loadingText}>영상을 불러오는 중...</Text>
+        {currentVideo && !currentVideo.url && (
           <Text style={styles.errorText}>비디오 URL을 찾을 수 없습니다</Text>
         )}
       </View>
@@ -258,13 +390,16 @@ const VideoDetailScreen = () => {
   return (
     <View style={styles.fullScreenContainer}>
       <VideoItem
-        video={video}
+        video={currentVideo}
         isFocused={true}
         isLiked={isLiked}
         isLikeLoading={isLikeLoading}
         onLikePress={handleLikePress}
         onBack={() => navigation.goBack()}
         onSubscribe={() => {}}
+        onVideoEnd={handleVideoEnd}
+        onNextVideo={handleNextVideo}
+        onPrevVideo={handlePrevVideo}
       />
     </View>
   );
@@ -390,6 +525,30 @@ const styles = StyleSheet.create({
   fullScreenContainer: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  topTouchArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: height * 0.3, // 화면 상단 30%
+    zIndex: 5,
+  },
+  centerTouchArea: {
+    position: 'absolute',
+    top: height * 0.3, // 상단 터치 영역 다음
+    left: 0,
+    right: 0,
+    height: height * 0.4, // 중간 터치 영역 높이
+    zIndex: 5,
+  },
+  bottomTouchArea: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: height * 0.3, // 화면 하단 30%
+    zIndex: 5,
   },
 });
 
