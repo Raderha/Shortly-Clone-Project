@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const SERVER_URL = 'http://222.102.217.76:8080';
+const SERVER_URL = 'http://192.168.0.18:8080';
 const { height, width } = Dimensions.get('window');
 
 interface VideoItemProps {

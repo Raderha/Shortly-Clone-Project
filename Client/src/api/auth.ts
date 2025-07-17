@@ -1,6 +1,6 @@
 import { useAuth } from '../contexts/AuthContext';
 
-const API_BASE_URL = 'http://222.102.217.76:8080/api';
+const API_BASE_URL = 'http://192.168.0.18:8080/api';
 
 export interface SignupRequest {
   username: string;
@@ -235,5 +235,67 @@ export const getAllVideos = async (page: number = 0, size: number = 20): Promise
   } catch (error) {
     console.error('getAllVideos 네트워크 오류:', error);
     return { videos: [], total: 0, page, perPage: size };
+  }
+};
+
+// 영상 업로드 API
+export const uploadVideo = async (formData: FormData, token?: string): Promise<{
+  success: boolean;
+  message: string;
+  video?: VideoResponse;
+}> => {
+  try {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    // FormData를 사용할 때는 Content-Type을 설정하지 않습니다 (브라우저가 자동으로 설정)
+
+    console.log('[uploadVideo] 요청 시작');
+    console.log('[uploadVideo] URL:', `${API_BASE_URL}/videos`);
+    console.log('[uploadVideo] 토큰:', token ? '있음' : '없음');
+
+    const response = await fetch(`${API_BASE_URL}/videos`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    console.log('[uploadVideo] 응답 상태:', response.status, response.statusText);
+    
+    // 응답 텍스트를 먼저 확인
+    const responseText = await response.text();
+    console.log('[uploadVideo] 응답 텍스트:', responseText);
+
+    let result;
+    try {
+      result = responseText ? JSON.parse(responseText) : {};
+    } catch (parseError) {
+      console.error('[uploadVideo] JSON 파싱 오류:', parseError);
+      console.error('[uploadVideo] 파싱할 텍스트:', responseText);
+      return {
+        success: false,
+        message: '서버 응답을 처리할 수 없습니다.',
+      };
+    }
+    
+    if (response.ok) {
+      return {
+        success: true,
+        message: '영상이 성공적으로 업로드되었습니다.',
+        video: result.data,
+      };
+    } else {
+      return {
+        success: false,
+        message: result.message || `업로드 실패 (${response.status})`,
+      };
+    }
+  } catch (error) {
+    console.error('[uploadVideo] 네트워크 오류:', error);
+    return {
+      success: false,
+      message: '네트워크 오류가 발생했습니다.',
+    };
   }
 }; 

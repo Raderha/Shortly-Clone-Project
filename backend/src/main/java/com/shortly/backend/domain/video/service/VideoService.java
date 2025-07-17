@@ -41,13 +41,21 @@ public class VideoService {
     
     @Transactional
     public VideoResponse uploadVideo(String title, String description, List<String> tagNames, MultipartFile videoFile) {
+        System.out.println("[VideoService] 업로드 시작 - 제목: " + title + ", 파일 크기: " + videoFile.getSize());
         User currentUser = userService.getCurrentUserEntity();
+        System.out.println("[VideoService] 현재 사용자: " + currentUser.getUsername());
         
         // 파일 업로드
+        System.out.println("[VideoService] 비디오 파일 업로드 시작");
         String videoUrl = fileService.uploadVideo(videoFile);
+        System.out.println("[VideoService] 비디오 파일 업로드 완료: " + videoUrl);
+        
+        System.out.println("[VideoService] 썸네일 생성 시작");
         String thumbnailUrl = fileService.generateThumbnail(videoFile);
+        System.out.println("[VideoService] 썸네일 생성 완료: " + thumbnailUrl);
         
         // 비디오 생성
+        System.out.println("[VideoService] 비디오 엔티티 생성 시작");
         Video video = Video.builder()
                 .title(title)
                 .description(description)
@@ -57,15 +65,26 @@ public class VideoService {
                 .build();
         
         Video savedVideo = videoRepository.save(video);
+        System.out.println("[VideoService] 비디오 저장 완료 - ID: " + savedVideo.getId());
         
         // 태그 처리
-        for (String tagName : tagNames) {
-            Tag tag = tagRepository.findByName(tagName)
-                    .orElseGet(() -> tagRepository.save(Tag.builder().name(tagName).build()));
-            savedVideo.addTag(tag);
+        System.out.println("[VideoService] 태그 처리 시작 - 태그 개수: " + (tagNames != null ? tagNames.size() : 0));
+        if (tagNames != null && !tagNames.isEmpty()) {
+            for (String tagName : tagNames) {
+                if (tagName != null && !tagName.trim().isEmpty()) {
+                    String trimmedTagName = tagName.trim();
+                    System.out.println("[VideoService] 태그 처리 중: " + trimmedTagName);
+                    Tag tag = tagRepository.findByName(trimmedTagName)
+                            .orElseGet(() -> tagRepository.save(Tag.builder().name(trimmedTagName).build()));
+                    savedVideo.addTag(tag);
+                }
+            }
         }
         
-        return VideoResponse.from(savedVideo);
+        System.out.println("[VideoService] VideoResponse 생성 시작");
+        VideoResponse response = VideoResponse.from(savedVideo);
+        System.out.println("[VideoService] 업로드 완료");
+        return response;
     }
     
     public VideoSearchResponse searchVideos(String keyword, int page, int size) {

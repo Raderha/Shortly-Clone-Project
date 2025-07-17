@@ -50,6 +50,7 @@ public class Video {
     private LocalDateTime updatedAt;
     
     @OneToMany(mappedBy = "video", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<VideoTag> videoTags = new ArrayList<>();
     
     @PrePersist
