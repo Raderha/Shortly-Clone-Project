@@ -14,6 +14,7 @@ import { getMyVideos, getLikedVideos, VideoResponse } from '../api/auth';
    Profile: undefined;
    VideoDetail: { videoId: number; allVideos: VideoResponse[]; currentIndex: number };
    DetailOption: undefined; 
+   MyVideo: undefined;
  };
 
 const { width } = Dimensions.get('window');
@@ -59,24 +60,33 @@ const ProfileScreen = () => {
   const [likedVideos, setLikedVideos] = useState<VideoResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchVideos = async () => {
-      try {
-        const [myVideosData, likedVideosData] = await Promise.all([
-          getMyVideos(token || undefined),
-          getLikedVideos(token || undefined)
-        ]);
-        setMyVideos(myVideosData);
-        setLikedVideos(likedVideosData);
-      } catch (error) {
-        console.error('동영상 가져오기 오류:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchVideos = async () => {
+    try {
+      const [myVideosData, likedVideosData] = await Promise.all([
+        getMyVideos(token || undefined),
+        getLikedVideos(token || undefined)
+      ]);
+      setMyVideos(myVideosData);
+      setLikedVideos(likedVideosData);
+    } catch (error) {
+      console.error('동영상 가져오기 오류:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchVideos();
   }, [token]);
+
+  // 화면이 포커스될 때마다 데이터 새로고침
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchVideos();
+    });
+
+    return unsubscribe;
+  }, [navigation, token]);
   
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
@@ -88,7 +98,13 @@ const ProfileScreen = () => {
         </View>
 
         {/* 내 동영상 */}
-        <Text style={styles.sectionTitle}>내 동영상</Text>
+        <TouchableOpacity 
+          style={styles.sectionHeader} 
+          onPress={() => navigation.navigate('MyVideo')}
+        >
+          <Text style={styles.sectionTitle}>내 동영상</Text>
+          <Icon name="chevron-right" size={24} color="#222" />
+        </TouchableOpacity>
         {!isLoading && (myVideos.length > 0 ? renderHorizontalList(myVideos, navigation) : <View style={styles.emptyContainer} />)}
 
         {/* 좋아요 */}
@@ -113,7 +129,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 20, paddingBottom: 32 },
   userInfo: { flexDirection: 'row', alignItems: 'center', marginTop: 28, marginBottom: 24 },
   userName: { marginLeft: 14, fontSize: 20, fontWeight: 'bold', color: '#222' },
-  sectionTitle: { fontSize: 17, fontWeight: 'bold', marginTop: 32, marginBottom: 16, color: '#222' },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 32, marginBottom: 16 },
+  sectionTitle: { fontSize: 17, fontWeight: 'bold', color: '#222' },
   horizontalList: { paddingRight: 20, marginBottom: 8 },
   thumbBox: { 
     width: THUMB_SIZE, 

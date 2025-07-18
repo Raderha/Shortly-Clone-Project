@@ -200,6 +200,22 @@ export const isVideoLiked = async (videoId: number, token?: string): Promise<boo
   }
 };
 
+// 동영상 삭제
+export const deleteVideo = async (videoId: number, token?: string): Promise<boolean> => {
+  try {
+    const response = await authFetch(`${API_BASE_URL}/videos/${videoId}`, { method: 'DELETE' }, token);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('deleteVideo HTTP 오류:', response.status, response.statusText, errorText);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('deleteVideo 네트워크 오류:', error);
+    return false;
+  }
+};
+
 // 모든 영상 가져오기
 export const getAllVideos = async (page: number = 0, size: number = 20): Promise<{
   videos: VideoResponse[];

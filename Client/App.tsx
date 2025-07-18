@@ -11,6 +11,7 @@ import UploadScreen from './src/screens/UploadScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import VideoDetailScreen from './src/screens/VideoDetailScreen';
 import DetailOption from './src/screens/DetailOption';
+import MyVideoScreen from './src/screens/MyVideo';
 
 const Stack = createStackNavigator();
 
@@ -28,6 +29,7 @@ export default function App() {
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="VideoDetail" component={VideoDetailScreen} />
             <Stack.Screen name="DetailOption" component={DetailOption} />
+            <Stack.Screen name="MyVideo" component={MyVideoScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>
