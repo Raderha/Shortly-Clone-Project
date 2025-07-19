@@ -87,9 +87,16 @@ public class UserService {
     // 즐겨찾기 태그 관리 메서드들
     @Transactional
     public void addFavoriteTag(String tagName) {
-        User currentUser = getCurrentUserEntity();
+        // fetch join으로 favoriteTags를 미리 로드
+        User currentUser = userRepository.findByIdWithFavoriteTags(getCurrentUserEntity().getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // 태그가 없으면 자동으로 생성
         Tag tag = tagRepository.findByName(tagName)
-                .orElseThrow(() -> new RuntimeException("Tag not found"));
+                .orElseGet(() -> {
+                    Tag newTag = Tag.builder().name(tagName).build();
+                    return tagRepository.save(newTag);
+                });
         
         if (!currentUser.hasFavoriteTag(tag)) {
             currentUser.addFavoriteTag(tag);
@@ -99,7 +106,10 @@ public class UserService {
     
     @Transactional
     public void removeFavoriteTag(String tagName) {
-        User currentUser = getCurrentUserEntity();
+        // fetch join으로 favoriteTags를 미리 로드
+        User currentUser = userRepository.findByIdWithFavoriteTags(getCurrentUserEntity().getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
         Tag tag = tagRepository.findByName(tagName)
                 .orElseThrow(() -> new RuntimeException("Tag not found"));
         
@@ -109,7 +119,10 @@ public class UserService {
     
     public List<String> getFavoriteTags() {
         User currentUser = getCurrentUserEntity();
-        return currentUser.getFavoriteTags().stream()
+        // LazyInitializationException 방지를 위해 fetch join 사용
+        User userWithFavorites = userRepository.findByIdWithFavoriteTags(currentUser.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return userWithFavorites.getFavoriteTags().stream()
                 .map(Tag::getName)
                 .collect(Collectors.toList());
     }

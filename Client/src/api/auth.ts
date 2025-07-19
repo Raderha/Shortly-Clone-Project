@@ -216,6 +216,93 @@ export const deleteVideo = async (videoId: number, token?: string): Promise<bool
   }
 };
 
+// 즐겨찾기 태그 추가
+export const addFavoriteTag = async (tagName: string, token?: string): Promise<boolean> => {
+  try {
+    console.log('[addFavoriteTag] 태그 추가 시작:', tagName, '토큰:', token ? '있음' : '없음');
+    const response = await authFetch(`${API_BASE_URL}/user/favorites/tags?tagName=${encodeURIComponent(tagName)}`, { method: 'POST' }, token);
+    console.log('[addFavoriteTag] 응답 상태:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('addFavoriteTag HTTP 오류:', response.status, response.statusText, errorText);
+      return false;
+    }
+    console.log('[addFavoriteTag] 태그 추가 성공');
+    return true;
+  } catch (error) {
+    console.error('addFavoriteTag 네트워크 오류:', error);
+    return false;
+  }
+};
+
+// 즐겨찾기 태그 목록 가져오기
+export const getFavoriteTags = async (token?: string): Promise<string[]> => {
+  try {
+    console.log('[getFavoriteTags] 태그 목록 조회 시작, 토큰:', token ? '있음' : '없음');
+    const response = await authFetch(`${API_BASE_URL}/user/favorites/tags`, { method: 'GET' }, token);
+    console.log('[getFavoriteTags] 응답 상태:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('getFavoriteTags HTTP 오류:', response.status, response.statusText, errorText);
+      return [];
+    }
+    const result = await response.json();
+    console.log('[getFavoriteTags] 응답 데이터:', result);
+    return result.data || [];
+  } catch (error) {
+    console.error('getFavoriteTags 네트워크 오류:', error);
+    return [];
+  }
+};
+
+// 즐겨찾기 태그 삭제
+export const removeFavoriteTag = async (tagName: string, token?: string): Promise<boolean> => {
+  try {
+    const response = await authFetch(`${API_BASE_URL}/user/favorites/tags/${encodeURIComponent(tagName)}`, { method: 'DELETE' }, token);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('removeFavoriteTag HTTP 오류:', response.status, response.statusText, errorText);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('removeFavoriteTag 네트워크 오류:', error);
+    return false;
+  }
+};
+
+// 태그로 영상 검색
+export const searchVideosByTag = async (tagName: string, page: number = 0, size: number = 20): Promise<{
+  videos: VideoResponse[];
+  total: number;
+  page: number;
+  perPage: number;
+}> => {
+  try {
+    const url = `${API_BASE_URL}/videos/tag/${encodeURIComponent(tagName)}?page=${page}&size=${size}`;
+    console.log('[searchVideosByTag] 요청 URL:', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('searchVideosByTag HTTP 오류:', response.status, response.statusText, errorText);
+      return { videos: [], total: 0, page, perPage: size };
+    }
+    
+    const result = await response.json();
+    console.log('[searchVideosByTag] 응답:', result);
+    return result || { videos: [], total: 0, page, perPage: size };
+  } catch (error) {
+    console.error('searchVideosByTag 네트워크 오류:', error);
+    return { videos: [], total: 0, page, perPage: size };
+  }
+};
+
 // 모든 영상 가져오기
 export const getAllVideos = async (page: number = 0, size: number = 20): Promise<{
   videos: VideoResponse[];
