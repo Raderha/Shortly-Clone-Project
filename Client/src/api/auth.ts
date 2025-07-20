@@ -271,6 +271,38 @@ export const removeFavoriteTag = async (tagName: string, token?: string): Promis
   }
 };
 
+// 키워드로 영상 검색
+export const searchVideosByKeyword = async (keyword: string, page: number = 0, size: number = 20): Promise<{
+  videos: VideoResponse[];
+  total: number;
+  page: number;
+  perPage: number;
+}> => {
+  try {
+    const url = `${API_BASE_URL}/videos/search?keyword=${encodeURIComponent(keyword)}&page=${page}&size=${size}`;
+    console.log('[searchVideosByKeyword] 요청 URL:', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('searchVideosByKeyword HTTP 오류:', response.status, response.statusText, errorText);
+      return { videos: [], total: 0, page, perPage: size };
+    }
+    
+    const result = await response.json();
+    console.log('[searchVideosByKeyword] 응답:', result);
+    return result || { videos: [], total: 0, page, perPage: size };
+  } catch (error) {
+    console.error('searchVideosByKeyword 네트워크 오류:', error);
+    return { videos: [], total: 0, page, perPage: size };
+  }
+};
+
 // 태그로 영상 검색
 export const searchVideosByTag = async (tagName: string, page: number = 0, size: number = 20): Promise<{
   videos: VideoResponse[];

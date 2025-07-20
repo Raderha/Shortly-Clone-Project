@@ -22,7 +22,8 @@ import {
   getFavoriteTags, 
   addFavoriteTag, 
   removeFavoriteTag, 
-  searchVideosByTag 
+  searchVideosByTag,
+  searchVideosByKeyword
 } from '../api/auth';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -43,6 +44,11 @@ export default function HomeScreen() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // 검색 관련 상태
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
   
   // 태그 입력 모달 상태
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -137,10 +143,14 @@ export default function HomeScreen() {
     if (selectedTag === tagName) {
       // 같은 태그를 다시 누르면 전체 영상으로 돌아가기
       setSelectedTag(null);
+      setIsSearchMode(false);
+      setSearchKeyword('');
       await loadVideos();
     } else {
       // 새로운 태그 선택
       setSelectedTag(tagName);
+      setIsSearchMode(false);
+      setSearchKeyword('');
       try {
         setLoading(true);
         const result = await searchVideosByTag(tagName, 0, 20);
@@ -155,6 +165,35 @@ export default function HomeScreen() {
     }
   };
 
+  const handleSearch = async () => {
+    if (!searchKeyword.trim()) {
+      Alert.alert('오류', '검색어를 입력해주세요.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setIsSearchMode(true);
+      setSelectedTag(null);
+      const result = await searchVideosByKeyword(searchKeyword.trim(), 0, 20);
+      setVideos(result.videos);
+      setError(null);
+      setIsSearchModalVisible(false);
+    } catch (err) {
+      console.error('키워드 검색 오류:', err);
+      setError('검색 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearSearch = async () => {
+    setIsSearchMode(false);
+    setSearchKeyword('');
+    setSelectedTag(null);
+    await loadVideos();
+  };
+
   return (
     <SafeAreaInsetView style={styles.container} edges={["top", "left", "right", "bottom"]}>
       {/* 상단 바 */}
@@ -162,7 +201,9 @@ export default function HomeScreen() {
         <Text style={styles.logo}>Shortly</Text>
         <View style={styles.headerIcons}>
           <Icon name="notifications-outline" size={24} style={styles.icon} />
-          <Icon name="search-outline" size={24} style={styles.icon} />
+          <TouchableOpacity onPress={() => setIsSearchModalVisible(true)}>
+            <Icon name="search-outline" size={24} style={styles.icon} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -215,6 +256,18 @@ export default function HomeScreen() {
         </View>
       )}
 
+      {/* 검색 모드 표시 */}
+      {isSearchMode && (
+        <View style={styles.selectedTagContainer}>
+          <Text style={styles.selectedTagText}>
+            "{searchKeyword}" 검색 결과
+          </Text>
+          <TouchableOpacity onPress={clearSearch}>
+            <Icon name="close-circle" size={20} color="#666" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* 영상 그리드 */}
       <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
         {loading ? (
@@ -233,7 +286,12 @@ export default function HomeScreen() {
           <View style={styles.emptyContainer}>
             <Icon name="videocam-outline" size={48} color="#ccc" />
             <Text style={styles.emptyText}>
-              {selectedTag ? `"${selectedTag}" 태그의 영상이 없습니다` : '업로드된 영상이 없습니다'}
+              {isSearchMode 
+                ? `"${searchKeyword}" 검색 결과가 없습니다` 
+                : selectedTag 
+                  ? `"${selectedTag}" 태그의 영상이 없습니다` 
+                  : '업로드된 영상이 없습니다'
+              }
             </Text>
           </View>
         ) : (
@@ -312,6 +370,45 @@ export default function HomeScreen() {
                 onPress={handleAddTag}
               >
                 <Text style={styles.addButtonText}>추가</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 검색 모달 */}
+      <Modal
+        visible={isSearchModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsSearchModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>영상 검색</Text>
+            <TextInput
+              style={styles.tagInput}
+              placeholder="검색어를 입력하세요"
+              value={searchKeyword}
+              onChangeText={setSearchKeyword}
+              autoFocus={true}
+              onSubmitEditing={handleSearch}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={() => {
+                  setIsSearchModalVisible(false);
+                  setSearchKeyword('');
+                }}
+              >
+                <Text style={styles.cancelButtonText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.addButton]} 
+                onPress={handleSearch}
+              >
+                <Text style={styles.addButtonText}>검색</Text>
               </TouchableOpacity>
             </View>
           </View>
