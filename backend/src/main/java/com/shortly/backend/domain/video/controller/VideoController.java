@@ -5,9 +5,20 @@ import com.shortly.backend.domain.video.dto.VideoResponse;
 import com.shortly.backend.domain.video.dto.VideoSearchResponse;
 import com.shortly.backend.domain.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.MalformedURLException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -21,8 +32,17 @@ public class VideoController {
     public ApiResponse<VideoResponse> uploadVideo(
             @RequestParam("title") String title,
             @RequestParam(value = "description", required = false) String description,
-            @RequestParam("tags") List<String> tags,
+            @RequestParam("tags") String tagsJson,
             @RequestParam("video") MultipartFile videoFile) {
+        
+        // JSON 문자열을 List<String>으로 변환
+        List<String> tags = new ArrayList<>();
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            tags = objectMapper.readValue(tagsJson, new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            System.out.println("태그 파싱 오류: " + e.getMessage());
+        }
         
         VideoResponse videoResponse = videoService.uploadVideo(title, description, tags, videoFile);
         return ApiResponse.success("Video uploaded successfully", videoResponse);
@@ -45,25 +65,19 @@ public class VideoController {
         return videoService.getAllVideos(page, size);
     }
     
-    @GetMapping("/{videoId}")
-    public ApiResponse<VideoResponse> getVideoById(@PathVariable Long videoId) {
-        VideoResponse video = videoService.getVideoById(videoId);
-        return ApiResponse.success("Video retrieved successfully", video);
-    }
-    
     @GetMapping("/tag/{tagName}")
     public VideoSearchResponse getVideosByTag(
             @PathVariable String tagName,
             @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size) {
+            @RequestParam(value = "size", defaultValue = "20") int size) {
         
         return videoService.getVideosByTag(tagName, page, size);
     }
     
     @DeleteMapping("/{videoId}")
-    public ApiResponse<Void> deleteVideo(@PathVariable Long videoId) {
+    public ApiResponse<String> deleteVideo(@PathVariable Long videoId) {
         videoService.deleteVideo(videoId);
-        return ApiResponse.success("Video deleted successfully");
+        return ApiResponse.success("Video deleted successfully", "Video deleted");
     }
     
     @GetMapping("/my-videos")
@@ -72,6 +86,7 @@ public class VideoController {
         return ApiResponse.success("My videos retrieved successfully", videos);
     }
     
+    // 좋아요 관련 API
     @GetMapping("/liked-videos")
     public ApiResponse<List<VideoResponse>> getLikedVideos() {
         List<VideoResponse> videos = videoService.getLikedVideos();
@@ -79,15 +94,15 @@ public class VideoController {
     }
     
     @PostMapping("/{videoId}/like")
-    public ApiResponse<Void> likeVideo(@PathVariable Long videoId) {
+    public ApiResponse<String> likeVideo(@PathVariable Long videoId) {
         videoService.likeVideo(videoId);
-        return ApiResponse.success("Video liked successfully");
+        return ApiResponse.success("Video liked successfully", "Video liked");
     }
     
     @DeleteMapping("/{videoId}/like")
-    public ApiResponse<Void> unlikeVideo(@PathVariable Long videoId) {
+    public ApiResponse<String> unlikeVideo(@PathVariable Long videoId) {
         videoService.unlikeVideo(videoId);
-        return ApiResponse.success("Video unliked successfully");
+        return ApiResponse.success("Video unliked successfully", "Video unliked");
     }
     
     @GetMapping("/{videoId}/is-liked")
@@ -95,10 +110,57 @@ public class VideoController {
         boolean isLiked = videoService.isVideoLiked(videoId);
         return ApiResponse.success("Like status retrieved successfully", isLiked);
     }
-
+    
     @PostMapping("/admin/generate-thumbnails")
-    public ApiResponse<Void> generateThumbnailsForAllVideos() {
+    public ApiResponse<String> generateThumbnails() {
         videoService.generateThumbnailsForAllVideos();
-        return ApiResponse.success("썸네일 일괄 생성 완료");
+        return ApiResponse.success("Thumbnails generated successfully", "Thumbnails generated");
+    }
+    
+    @PostMapping("/admin/clear-thumbnails")
+    public ApiResponse<String> clearThumbnails() {
+        videoService.clearAllThumbnails();
+        return ApiResponse.success("Thumbnails cleared successfully", "Thumbnails cleared");
+    }
+    
+    // 정적 파일 접근을 위한 엔드포인트
+    @GetMapping("/file/{filename}")
+    public ResponseEntity<Resource> getVideoFile(@PathVariable String filename) {
+        try {
+            // backend 디렉토리에서 실행되므로 uploads/videos 경로로 설정
+            Path filePath = Paths.get("uploads", "videos").resolve(filename).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+            
+            if (resource.exists() && resource.isReadable()) {
+                return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                    .body(resource);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (MalformedURLException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    @GetMapping("/thumbnail/{filename}")
+    public ResponseEntity<Resource> getThumbnailFile(@PathVariable String filename) {
+        try {
+            // backend 디렉토리에서 실행되므로 uploads/thumbnails 경로로 설정
+            Path filePath = Paths.get("uploads", "thumbnails").resolve(filename).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+            
+            if (resource.exists() && resource.isReadable()) {
+                return ResponseEntity.ok()
+                    .contentType(MediaType.IMAGE_JPEG)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                    .body(resource);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (MalformedURLException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 } 

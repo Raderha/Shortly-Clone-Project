@@ -100,7 +100,7 @@ const MyVideoScreen = () => {
       >
         {video.thumbnailUrl ? (
           <Image 
-            source={{ uri: `http://192.168.0.18:8080/uploads/thumbnails/${video.thumbnailUrl}` }} 
+            source={{ uri: `http://192.168.0.18:8080/api/videos/thumbnail/${video.thumbnailUrl}` }} 
             style={styles.thumbnail}
             resizeMode="cover"
           />

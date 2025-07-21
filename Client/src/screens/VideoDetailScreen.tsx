@@ -137,7 +137,7 @@ const VideoItem: React.FC<VideoItemProps> = ({
       {!hasError ? (
         <Video
           ref={videoRef}
-          source={{ uri: `${SERVER_URL}/uploads/videos/${video.url}` }}
+          source={{ uri: `${SERVER_URL}/api/videos/file/${video.url}` }}
           style={StyleSheet.absoluteFill}
           resizeMode={ResizeMode.CONTAIN}
           shouldPlay={isFocused}

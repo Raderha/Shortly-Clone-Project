@@ -245,12 +245,12 @@ public class VideoService {
                         System.out.println("[FFmpeg] 썸네일 경로: " + thumbnailFilePath.toString());
                         System.out.println("[FFmpeg] 썸네일 폴더 존재: " + Files.exists(thumbnailFilePath.getParent()));
                         ProcessBuilder pb = new ProcessBuilder(
-                            "C:\\ffmpeg-2025-07-10-git-82aeee3c19-full_build\\bin\\ffmpeg.exe",
+                            "ffmpeg",
                             "-i", videoPath.toString(),
                             "-ss", "00:00:01",
                             "-vframes", "1",
                             "-vf", "scale=320:240",
-                            "-update", "1",
+                            "-y",
                             thumbnailFilePath.toString()
                         );
                         pb.redirectErrorStream(true);
@@ -289,5 +289,15 @@ public class VideoService {
                 }
             }
         }
+    }
+    
+    @Transactional
+    public void clearAllThumbnails() {
+        List<Video> videos = videoRepository.findAll();
+        for (Video video : videos) {
+            video.setThumbnailUrl(null);
+        }
+        videoRepository.saveAll(videos);
+        System.out.println("모든 썸네일 URL 초기화 완료");
     }
 } 

@@ -27,6 +27,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final String SECRET_KEY = "shortly-secret-key-shortly-secret-key-shortly-secret-key-shortly-secret-key"; // 32+ chars
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        // 정적 파일 경로는 JWT 필터를 거치지 않도록 설정
+        return path.startsWith("/uploads/") || 
+               path.startsWith("/static/") || 
+               path.startsWith("/public/");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String token = resolveToken(request);
