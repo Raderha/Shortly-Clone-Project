@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -12,6 +12,7 @@ type RootStackParamList = {
   Profile: undefined;
   VideoDetail: undefined;
   DetailOption: undefined;
+  Start: undefined;
 };
 
 const OPTIONS = [
@@ -21,11 +22,39 @@ const OPTIONS = [
   '전체 기록 관리',
   '연결된 앱',
   '일반',
+  '로그아웃',
 ];
 
 const DetailOption = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  
+  const handleOptionPress = (option: string) => {
+    if (option === '로그아웃') {
+      Alert.alert(
+        '로그아웃',
+        '정말 로그아웃 하시겠습니까?',
+        [
+          {
+            text: '취소',
+            style: 'cancel',
+          },
+          {
+            text: '로그아웃',
+            style: 'destructive',
+            onPress: () => {
+              logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Start' }],
+              });
+            },
+          },
+        ]
+      );
+    }
+    // 다른 옵션들에 대한 처리도 여기에 추가할 수 있습니다
+  };
   
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
@@ -43,9 +72,24 @@ const DetailOption = () => {
       {/* 옵션 목록 */}
       <View style={styles.optionsList}>
         {OPTIONS.map((opt, idx) => (
-          <View key={opt} style={styles.optionItem}>
-            <Text style={styles.optionText}>{opt}</Text>
-          </View>
+          <TouchableOpacity 
+            key={opt} 
+            style={[
+              styles.optionItem,
+              opt === '로그아웃' && styles.logoutOption
+            ]}
+            onPress={() => handleOptionPress(opt)}
+          >
+            <Text style={[
+              styles.optionText,
+              opt === '로그아웃' && styles.logoutText
+            ]}>
+              {opt}
+            </Text>
+            {opt === '로그아웃' && (
+              <Icon name="logout" size={20} color="#FF3B30" />
+            )}
+          </TouchableOpacity>
         ))}
       </View>
     </SafeAreaView>
@@ -58,8 +102,24 @@ const styles = StyleSheet.create({
   userInfo: { flexDirection: 'row', alignItems: 'center' },
   userName: { marginLeft: 12, fontSize: 18, fontWeight: 'bold', color: '#222' },
   optionsList: { marginTop: 10 },
-  optionItem: { paddingVertical: 18, borderBottomWidth: 0, justifyContent: 'center' },
+  optionItem: { 
+    paddingVertical: 18, 
+    borderBottomWidth: 0, 
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
   optionText: { fontSize: 16, color: '#222' },
+  logoutOption: {
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+    paddingTop: 20,
+  },
+  logoutText: {
+    color: '#FF3B30',
+    fontWeight: '500',
+  },
 });
 
 export default DetailOption;
