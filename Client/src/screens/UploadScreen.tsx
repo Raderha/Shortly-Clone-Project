@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
+import { Video } from 'expo-av';
 import { uploadVideo } from '../api/auth';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -22,6 +23,7 @@ const UploadScreen = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState('');
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
 
   const requestPermissions = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -30,6 +32,14 @@ const UploadScreen = () => {
       return false;
     }
     return true;
+  };
+
+  const validateVideoDuration = (durationMs: number): boolean => {
+    const durationSeconds = durationMs / 1000;
+    const minDuration = 5; // 5초
+    const maxDuration = 180; // 3분 (180초)
+    
+    return durationSeconds >= minDuration && durationSeconds <= maxDuration;
   };
 
   const pickVideo = async () => {
@@ -44,9 +54,11 @@ const UploadScreen = () => {
         quality: 1,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setSelectedVideo(result.assets[0]);
-      }
+              if (!result.canceled && result.assets && result.assets.length > 0) {
+          const video = result.assets[0];
+          setSelectedVideo(video);
+          setVideoDuration(null); // 서버에서 검증하므로 클라이언트에서는 null로 설정
+        }
     } catch (error) {
       console.error('영상 선택 오류:', error);
       Alert.alert('오류', '영상을 선택하는 중 오류가 발생했습니다.');
@@ -64,6 +76,13 @@ const UploadScreen = () => {
       return;
     }
 
+    // 태그 입력 검증
+    const tagList = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+    if (tagList.length === 0) {
+      Alert.alert('오류', '최소 하나의 태그를 입력해주세요.');
+      return;
+    }
+
     setIsUploading(true);
     
     try {
@@ -71,7 +90,8 @@ const UploadScreen = () => {
         uri: selectedVideo.uri,
         fileName: selectedVideo.fileName,
         fileSize: selectedVideo.fileSize,
-        type: selectedVideo.type
+        type: selectedVideo.type,
+        duration: videoDuration
       });
 
       const formData = new FormData();
@@ -82,7 +102,7 @@ const UploadScreen = () => {
       } as any);
       formData.append('title', title || selectedVideo.fileName || '새 영상');
       formData.append('description', ''); // 빈 설명
-      formData.append('tags', JSON.stringify(tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)));
+      formData.append('tags', JSON.stringify(tagList));
       
       console.log('[UploadScreen] FormData 생성 완료');
       console.log('[UploadScreen] 토큰:', token ? '있음' : '없음');
@@ -103,6 +123,13 @@ const UploadScreen = () => {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const formatDuration = (durationMs: number): string => {
+    const seconds = Math.floor(durationMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -153,6 +180,13 @@ const UploadScreen = () => {
                 placeholder="태그를 쉼표로 구분하여 입력하세요 (예: 운동, 격투기, 권투)"
                 placeholderTextColor="#999"
               />
+              <Text style={styles.inputHint}>* 최소 하나의 태그가 필요합니다</Text>
+            </View>
+            
+            {/* 영상 길이 안내 */}
+            <View style={styles.infoContainer}>
+              <Icon name="info" size={16} color="#666" />
+              <Text style={styles.infoText}>영상 길이는 5초 이상 3분 이하여야 합니다</Text>
             </View>
             
             <TouchableOpacity 
@@ -173,6 +207,7 @@ const UploadScreen = () => {
               <Icon name="add" size={48} color="#FF6F4D" />
               <Text style={styles.uploadAreaText}>영상 선택하기</Text>
               <Text style={styles.uploadSubText}>갤러리에서 업로드할 영상을 선택하세요</Text>
+              <Text style={styles.uploadSubText}>영상 길이는 5초 이상 3분 이하여야 합니다</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -347,6 +382,26 @@ const styles = StyleSheet.create({
   textArea: {
     height: 80,
     textAlignVertical: 'top',
+  },
+  inputHint: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
   },
 });
 

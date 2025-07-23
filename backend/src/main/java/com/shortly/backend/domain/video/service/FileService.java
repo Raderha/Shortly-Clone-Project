@@ -5,7 +5,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -245,6 +247,74 @@ public class FileService {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
             throw new RuntimeException("Failed to delete thumbnail", e);
+        }
+    }
+    
+    public double getVideoDuration(MultipartFile videoFile) {
+        System.out.println("[FileService] 영상 길이 확인 시작");
+        try {
+            // 임시로 비디오 파일 저장
+            Path tempVideoPath = Paths.get(uploadDir, UUID.randomUUID().toString() + ".mp4");
+            Files.copy(videoFile.getInputStream(), tempVideoPath);
+            
+            try {
+                // FFprobe 명령어 확인
+                String ffprobeCommand = "ffprobe";
+                if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+                    // Windows에서 FFprobe 경로 확인
+                    String[] possiblePaths = {
+                        "C:\\ffmpeg\\bin\\ffprobe.exe",
+                        "C:\\ffmpeg-2025-07-10-git-82aeee3c19-full_build\\bin\\ffprobe.exe",
+                        "ffprobe.exe"
+                    };
+                    
+                    for (String path : possiblePaths) {
+                        try {
+                            ProcessBuilder testPb = new ProcessBuilder(path, "-version");
+                            Process testProcess = testPb.start();
+                            if (testProcess.waitFor() == 0) {
+                                ffprobeCommand = path;
+                                System.out.println("[FileService] FFprobe 경로 확인됨: " + path);
+                                break;
+                            }
+                        } catch (Exception e) {
+                            System.out.println("[FileService] FFprobe 경로 테스트 실패: " + path);
+                        }
+                    }
+                }
+                
+                // FFprobe를 사용하여 영상 길이 확인
+                ProcessBuilder pb = new ProcessBuilder(
+                    ffprobeCommand, 
+                    "-v", "quiet", 
+                    "-show_entries", "format=duration", 
+                    "-of", "csv=p=0", 
+                    tempVideoPath.toString()
+                );
+                
+                Process process = pb.start();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String output = reader.readLine();
+                
+                int exitCode = process.waitFor();
+                if (exitCode == 0 && output != null && !output.trim().isEmpty()) {
+                    double duration = Double.parseDouble(output.trim());
+                    System.out.println("[FileService] 영상 길이 확인 완료: " + duration + "초");
+                    return duration;
+                } else {
+                    System.out.println("[FileService] FFprobe 실행 실패, 기본값 반환");
+                    return 0.0;
+                }
+                
+            } finally {
+                // 임시 파일 삭제
+                Files.deleteIfExists(tempVideoPath);
+            }
+            
+        } catch (Exception e) {
+            System.out.println("[FileService] 영상 길이 확인 오류: " + e.getMessage());
+            e.printStackTrace();
+            return 0.0;
         }
     }
 } 

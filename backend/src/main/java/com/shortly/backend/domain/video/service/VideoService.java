@@ -45,6 +45,15 @@ public class VideoService {
         User currentUser = userService.getCurrentUserEntity();
         System.out.println("[VideoService] 현재 사용자: " + currentUser.getUsername());
         
+        // 영상 길이 검증
+        System.out.println("[VideoService] 영상 길이 검증 시작");
+        double durationInSeconds = fileService.getVideoDuration(videoFile);
+        System.out.println("[VideoService] 영상 길이: " + durationInSeconds + "초");
+        
+        if (durationInSeconds < 5.0 || durationInSeconds > 180.0) {
+            throw new IllegalArgumentException("영상 길이는 5초 이상 3분 이하여야 합니다. 현재 길이: " + durationInSeconds + "초");
+        }
+        
         // 파일 업로드
         System.out.println("[VideoService] 비디오 파일 업로드 시작");
         String videoUrl = fileService.uploadVideo(videoFile);
