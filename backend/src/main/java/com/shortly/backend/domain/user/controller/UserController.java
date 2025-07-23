@@ -1,6 +1,7 @@
 package com.shortly.backend.domain.user.controller;
 
 import com.shortly.backend.domain.common.dto.ApiResponse;
+import com.shortly.backend.domain.user.dto.ChangePasswordRequest;
 import com.shortly.backend.domain.user.dto.UserResponse;
 import com.shortly.backend.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -38,5 +39,11 @@ public class UserController {
     public ApiResponse<Void> removeFavoriteTag(@PathVariable String tagName) {
         userService.removeFavoriteTag(tagName);
         return ApiResponse.success("Tag removed from favorites");
+    }
+
+    @PostMapping("/change-password")
+    public ApiResponse<Void> changePassword(@RequestBody @Valid ChangePasswordRequest request) {
+        userService.changePassword(request.getCurrentPassword(), request.getNewPassword());
+        return ApiResponse.success("비밀번호가 성공적으로 변경되었습니다.");
     }
 } 

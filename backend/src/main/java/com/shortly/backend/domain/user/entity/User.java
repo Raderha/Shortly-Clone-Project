@@ -111,6 +111,10 @@ public class User implements UserDetails {
         return favoriteTags;
     }
     
+    public void setPassword(String password) {
+        this.password = password;
+    }
+    
     public enum Role {
         USER, ADMIN
     }

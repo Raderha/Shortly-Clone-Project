@@ -434,3 +434,34 @@ export const uploadVideo = async (formData: FormData, token?: string): Promise<{
     };
   }
 }; 
+
+// 비밀번호 변경 API
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export const changePassword = async (
+  data: ChangePasswordRequest,
+  token?: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await authFetch(
+      `${API_BASE_URL}/user/change-password`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+      token
+    );
+    const result = await response.json();
+    if (response.ok) {
+      return { success: true, message: result.message || '비밀번호가 변경되었습니다.' };
+    } else {
+      return { success: false, message: result.message || '비밀번호 변경에 실패했습니다.' };
+    }
+  } catch (error) {
+    console.error('비밀번호 변경 오류:', error);
+    return { success: false, message: '네트워크 오류가 발생했습니다.' };
+  }
+}; 

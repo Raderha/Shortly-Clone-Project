@@ -126,4 +126,14 @@ public class UserService {
                 .map(Tag::getName)
                 .collect(Collectors.toList());
     }
+
+    @Transactional
+    public void changePassword(String currentPassword, String newPassword) {
+        User currentUser = getCurrentUserEntity();
+        if (!passwordEncoder.matches(currentPassword, currentUser.getPassword())) {
+            throw new RuntimeException("현재 비밀번호가 올바르지 않습니다.");
+        }
+        currentUser.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(currentUser);
+    }
 } 
