@@ -40,7 +40,7 @@ const LoginScreen = () => {
       
       if (response.success && response.token && response.user) {
         console.log('로그인 성공 분기');
-        authLogin(response.user, response.token);
+        await authLogin(response.user, response.token);
         Alert.alert('성공', response.message, [
           { text: '확인', onPress: () => navigation.navigate('Home') }
         ]);

@@ -10,7 +10,11 @@ export const useFavoriteTags = () => {
   const [newTagName, setNewTagName] = useState('');
 
   useEffect(() => {
-    loadFavoriteTags();
+    if (token) {
+      loadFavoriteTags();
+    } else {
+      setFavoriteTags([]);
+    }
   }, [token]);
 
   const loadFavoriteTags = async () => {

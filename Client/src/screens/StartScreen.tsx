@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { useAuth } from '../contexts/AuthContext';
 
 type RootStackParamList = {
   Start: undefined;
@@ -17,6 +18,26 @@ type RootStackParamList = {
 
 const StartScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // 인증 상태 확인 후 자동 로그인
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigation.replace('Home');
+    }
+  }, [isLoading, isAuthenticated, navigation]);
+
+  // 로딩 중일 때 스플래시 화면 표시
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.logo}>Shortly</Text>
+          <ActivityIndicator size="large" color="#FF6B57" style={styles.loadingIndicator} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
@@ -52,6 +73,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingIndicator: {
+    marginTop: 20,
   },
   logoContainer: {
     flex: 1,

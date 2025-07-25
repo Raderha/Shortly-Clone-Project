@@ -114,7 +114,17 @@ const authFetch = async (url: string, options: any = {}, token?: string) => {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
   };
-  return fetch(url, { ...options, headers });
+  
+  const response = await fetch(url, { ...options, headers });
+  
+  // 401 Unauthorized 응답 처리 (토큰 만료)
+  if (response.status === 401) {
+    console.log('토큰이 만료되었습니다. 로그아웃 처리가 필요합니다.');
+    // 여기서 이벤트를 발생시켜 AuthContext에서 로그아웃 처리할 수 있습니다
+    // 현재는 단순히 로그만 출력
+  }
+  
+  return response;
 };
 
 // 사용자의 동영상 가져오기

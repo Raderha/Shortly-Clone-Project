@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image, ScrollView, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -55,7 +55,7 @@ const renderHorizontalList = (data: VideoResponse[], navigation: any) => (
 
 const ProfileScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { user, token } = useAuth();
+  const { user, token, logout } = useAuth();
   const [myVideos, setMyVideos] = useState<VideoResponse[]>([]);
   const [likedVideos, setLikedVideos] = useState<VideoResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,6 +87,29 @@ const ProfileScreen = () => {
 
     return unsubscribe;
   }, [navigation, token]);
+
+  const handleLogout = async () => {
+    Alert.alert(
+      '로그아웃',
+      '정말 로그아웃하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '로그아웃',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              navigation.navigate('Start');
+            } catch (error) {
+              console.error('로그아웃 오류:', error);
+              Alert.alert('오류', '로그아웃 중 오류가 발생했습니다.');
+            }
+          },
+        },
+      ]
+    );
+  };
   
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
@@ -119,6 +142,9 @@ const ProfileScreen = () => {
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate({ name: 'DetailOption', params: undefined })}>
           <Icon name="settings" size={36} color="#222" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleLogout}>
+          <Icon name="logout" size={36} color="#FF6B57" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
