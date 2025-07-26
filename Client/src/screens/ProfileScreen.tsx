@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -88,28 +88,7 @@ const ProfileScreen = () => {
     return unsubscribe;
   }, [navigation, token]);
 
-  const handleLogout = async () => {
-    Alert.alert(
-      '로그아웃',
-      '정말 로그아웃하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '로그아웃',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout();
-              navigation.navigate('Start');
-            } catch (error) {
-              console.error('로그아웃 오류:', error);
-              Alert.alert('오류', '로그아웃 중 오류가 발생했습니다.');
-            }
-          },
-        },
-      ]
-    );
-  };
+
   
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
@@ -137,14 +116,11 @@ const ProfileScreen = () => {
 
       {/* 하단 네비게이션 */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+        <TouchableOpacity style={styles.homeButton} onPress={() => navigation.navigate('Home')}>
           <Icon name="home" size={36} color="#222" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate({ name: 'DetailOption', params: undefined })}>
+        <TouchableOpacity style={styles.settingsButton} onPress={() => navigation.navigate({ name: 'DetailOption', params: undefined })}>
           <Icon name="settings" size={36} color="#222" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleLogout}>
-          <Icon name="logout" size={36} color="#FF6B57" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -170,6 +146,8 @@ const styles = StyleSheet.create({
   thumbnail: { width: '100%', height: '100%', borderRadius: 12 },
   emptyContainer: { height: THUMB_SIZE, marginBottom: 8 },
   bottomBar: { position: 'absolute', left: 0, right: 0, bottom: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 40, paddingBottom: 28, backgroundColor: '#fff' },
+  homeButton: { padding: 8 },
+  settingsButton: { padding: 8 },
 });
 
 export default ProfileScreen;
