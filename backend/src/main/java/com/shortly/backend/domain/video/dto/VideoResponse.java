@@ -1,6 +1,7 @@
 package com.shortly.backend.domain.video.dto;
 
 import com.shortly.backend.domain.user.dto.UserResponse;
+import com.shortly.backend.domain.user.entity.User;
 import com.shortly.backend.domain.video.entity.Video;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,6 +26,7 @@ public class VideoResponse {
     private UserResponse owner;
     private List<String> tags;
     private LocalDateTime createdAt;
+    private Boolean isLiked; // 좋아요 상태 추가
     
     public static VideoResponse from(Video video) {
         return VideoResponse.builder()
@@ -38,6 +40,24 @@ public class VideoResponse {
                         .map(vt -> vt.getTag().getName())
                         .collect(Collectors.toList()))
                 .createdAt(video.getCreatedAt())
+                .isLiked(null) // 기본값은 null
+                .build();
+    }
+    
+    // 좋아요 상태를 포함한 from 메서드
+    public static VideoResponse from(Video video, User currentUser, boolean isLiked) {
+        return VideoResponse.builder()
+                .id(video.getId())
+                .title(video.getTitle())
+                .description(video.getDescription())
+                .url(video.getUrl())
+                .thumbnailUrl(video.getThumbnailUrl())
+                .owner(UserResponse.from(video.getOwner()))
+                .tags(video.getVideoTags().stream()
+                        .map(vt -> vt.getTag().getName())
+                        .collect(Collectors.toList()))
+                .createdAt(video.getCreatedAt())
+                .isLiked(isLiked)
                 .build();
     }
 } 

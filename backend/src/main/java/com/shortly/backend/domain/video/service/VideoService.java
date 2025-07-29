@@ -27,10 +27,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class VideoService {
     
     private final VideoRepository videoRepository;
@@ -100,9 +100,28 @@ public class VideoService {
         Pageable pageable = PageRequest.of(page, size);
         Page<Video> videoPage = videoRepository.searchByKeyword(keyword, pageable);
         
-        List<VideoResponse> videos = videoPage.getContent().stream()
-                .map(VideoResponse::from)
-                .collect(Collectors.toList());
+        List<Video> rawVideos = videoPage.getContent();
+        System.out.println("검색 결과 Video 개수: " + rawVideos.size());
+        
+        // 현재 사용자 가져오기 (로그인된 경우에만)
+        User currentUser = null;
+        try {
+            currentUser = userService.getCurrentUserEntity();
+            System.out.println("현재 사용자: " + currentUser.getUsername());
+        } catch (Exception e) {
+            System.out.println("로그인되지 않은 사용자");
+        }
+        
+        List<VideoResponse> videos = new ArrayList<>();
+        for (Video video : rawVideos) {
+            // 현재 사용자가 로그인된 경우 좋아요 상태 확인
+            if (currentUser != null) {
+                boolean isLiked = videoLikeRepository.existsByUserAndVideo(currentUser, video);
+                videos.add(VideoResponse.from(video, currentUser, isLiked));
+            } else {
+                videos.add(VideoResponse.from(video));
+            }
+        }
         
         return VideoSearchResponse.builder()
                 .videos(videos)
@@ -118,19 +137,28 @@ public class VideoService {
     
         List<Video> rawVideos = videoPage.getContent();
         System.out.println("DB에서 조회된 Video 개수: " + rawVideos.size());
-        for (Video v : rawVideos) {
-            System.out.println("Video: " + v.getId() + ", title: " + v.getTitle() + ", owner: " + v.getOwner());
+        
+        // 현재 사용자 가져오기 (로그인된 경우에만)
+        User currentUser = null;
+        try {
+            currentUser = userService.getCurrentUserEntity();
+            System.out.println("현재 사용자: " + currentUser.getUsername());
+        } catch (Exception e) {
+            System.out.println("로그인되지 않은 사용자");
         }
-    
+        
         List<VideoResponse> videos = new ArrayList<>();
-        for (Video v : rawVideos) {
-            try {
-                videos.add(VideoResponse.from(v));
-            } catch (Exception e) {
-                System.out.println("Video 변환 실패: " + v.getId() + ", 에러: " + e.getMessage());
-                e.printStackTrace();
+        for (Video video : rawVideos) {
+            // 현재 사용자가 로그인된 경우 좋아요 상태 확인
+            if (currentUser != null) {
+                boolean isLiked = videoLikeRepository.existsByUserAndVideo(currentUser, video);
+                System.out.println("비디오 " + video.getId() + " 좋아요 상태: " + isLiked);
+                videos.add(VideoResponse.from(video, currentUser, isLiked));
+            } else {
+                videos.add(VideoResponse.from(video));
             }
         }
+        
         System.out.println("VideoResponse 변환 후 개수: " + videos.size());
     
         return VideoSearchResponse.builder()
@@ -151,9 +179,28 @@ public class VideoService {
         Pageable pageable = PageRequest.of(page, size);
         Page<Video> videoPage = videoRepository.findByTagName(tagName, pageable);
         
-        List<VideoResponse> videos = videoPage.getContent().stream()
-                .map(VideoResponse::from)
-                .collect(Collectors.toList());
+        List<Video> rawVideos = videoPage.getContent();
+        System.out.println("태그별 검색 결과 Video 개수: " + rawVideos.size());
+        
+        // 현재 사용자 가져오기 (로그인된 경우에만)
+        User currentUser = null;
+        try {
+            currentUser = userService.getCurrentUserEntity();
+            System.out.println("현재 사용자: " + currentUser.getUsername());
+        } catch (Exception e) {
+            System.out.println("로그인되지 않은 사용자");
+        }
+        
+        List<VideoResponse> videos = new ArrayList<>();
+        for (Video video : rawVideos) {
+            // 현재 사용자가 로그인된 경우 좋아요 상태 확인
+            if (currentUser != null) {
+                boolean isLiked = videoLikeRepository.existsByUserAndVideo(currentUser, video);
+                videos.add(VideoResponse.from(video, currentUser, isLiked));
+            } else {
+                videos.add(VideoResponse.from(video));
+            }
+        }
         
         return VideoSearchResponse.builder()
                 .videos(videos)
@@ -225,11 +272,17 @@ public class VideoService {
                 .orElseThrow(() -> new RuntimeException("Video not found"));
         
         // 좋아요 찾기
-        VideoLike videoLike = videoLikeRepository.findByUserAndVideo(currentUser, video)
-                .orElseThrow(() -> new RuntimeException("Video not liked"));
+        Optional<VideoLike> videoLikeOpt = videoLikeRepository.findByUserAndVideo(currentUser, video);
+        
+        // 좋아요가 없으면 이미 취소된 상태로 간주하고 성공 반환
+        if (videoLikeOpt.isEmpty()) {
+            System.out.println("Video not liked by user: " + currentUser.getId() + ", video: " + videoId);
+            return;
+        }
         
         // 좋아요 삭제
-        videoLikeRepository.delete(videoLike);
+        videoLikeRepository.delete(videoLikeOpt.get());
+        System.out.println("Video unliked successfully: " + videoId);
     }
     
     public boolean isVideoLiked(Long videoId) {

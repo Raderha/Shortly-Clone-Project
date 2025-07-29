@@ -6,6 +6,7 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 
 // 커스텀 훅
 import { useHomeScreen } from '../hooks';
+import { useAuth } from '../contexts/AuthContext';
 
 // 컴포넌트들
 import {
@@ -28,6 +29,7 @@ type RootStackParamList = {
 
 export default function HomeScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const { token } = useAuth();
   
   // 커스텀 훅으로 모든 비즈니스 로직 관리
   const {
@@ -53,7 +55,7 @@ export default function HomeScreen() {
     closeTagModal,
     setSearchKeyword,
     setNewTagName,
-  } = useHomeScreen();
+  } = useHomeScreen(token);
 
   const handleVideoPress = (videoId: number) => {
     navigation.navigate('VideoDetail', { videoId });

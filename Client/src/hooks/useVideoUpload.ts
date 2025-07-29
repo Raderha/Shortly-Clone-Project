@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { uploadVideo } from '../api/auth';
+import { uploadVideo } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 type RootStackParamList = {

@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
-import { changePassword } from '../api/auth';
+import { changePassword } from '../api';
 
 type RootStackParamList = {
   Home: undefined;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
-import { getFavoriteTags, addFavoriteTag, removeFavoriteTag } from '../api/auth';
+import { getFavoriteTags, addFavoriteTag, removeFavoriteTag } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 export const useFavoriteTags = () => {

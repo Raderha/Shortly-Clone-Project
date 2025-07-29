@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { login } from '../api/auth';
+import { login } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 type RootStackParamList = {

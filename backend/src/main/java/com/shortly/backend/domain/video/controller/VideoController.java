@@ -49,29 +49,32 @@ public class VideoController {
     }
     
     @GetMapping("/search")
-    public VideoSearchResponse searchVideos(
+    public ApiResponse<VideoSearchResponse> searchVideos(
             @RequestParam("keyword") String keyword,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         
-        return videoService.searchVideos(keyword, page, size);
+        VideoSearchResponse result = videoService.searchVideos(keyword, page, size);
+        return ApiResponse.success("Videos searched successfully", result);
     }
     
     @GetMapping
-    public VideoSearchResponse getAllVideos(
+    public ApiResponse<VideoSearchResponse> getAllVideos(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size) {
         
-        return videoService.getAllVideos(page, size);
+        VideoSearchResponse result = videoService.getAllVideos(page, size);
+        return ApiResponse.success("Videos retrieved successfully", result);
     }
     
     @GetMapping("/tag/{tagName}")
-    public VideoSearchResponse getVideosByTag(
+    public ApiResponse<VideoSearchResponse> getVideosByTag(
             @PathVariable String tagName,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size) {
         
-        return videoService.getVideosByTag(tagName, page, size);
+        VideoSearchResponse result = videoService.getVideosByTag(tagName, page, size);
+        return ApiResponse.success("Videos retrieved by tag successfully", result);
     }
     
     @DeleteMapping("/{videoId}")

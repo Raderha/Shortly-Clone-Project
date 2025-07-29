@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
-import { getMyVideos, getLikedVideos, VideoResponse } from '../api/auth';
+import { getMyVideos, getLikedVideos, VideoResponse } from '../api';
 
 // Stack 네비게이터의 스크린 이름 타입 정의
  type RootStackParamList = {

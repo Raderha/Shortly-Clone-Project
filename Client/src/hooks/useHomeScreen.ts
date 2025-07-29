@@ -4,8 +4,8 @@ import { useFavoriteTags } from './useFavoriteTags';
 import { useSearch } from './useSearch';
 import { useTagSelection } from './useTagSelection';
 
-export const useHomeScreen = () => {
-  const videoList = useVideoList();
+export const useHomeScreen = (token?: string) => {
+  const videoList = useVideoList(token);
   const favoriteTags = useFavoriteTags();
   const search = useSearch();
   const tagSelection = useTagSelection();
@@ -13,7 +13,7 @@ export const useHomeScreen = () => {
   // 초기 데이터 로드
   useEffect(() => {
     videoList.loadVideos();
-  }, []);
+  }, [token]);
 
   // 태그 선택 핸들러
   const handleTagPress = async (tagName: string) => {

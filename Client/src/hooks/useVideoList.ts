@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getAllVideos, VideoResponse, searchVideosByTag, searchVideosByKeyword } from '../api/auth';
+import { getAllVideos, VideoResponse, searchVideosByTag, searchVideosByKeyword } from '../api';
 
-export const useVideoList = () => {
+export const useVideoList = (token?: string) => {
   const [videos, setVideos] = useState<VideoResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -9,7 +9,7 @@ export const useVideoList = () => {
   const loadVideos = async () => {
     try {
       setLoading(true);
-      const result = await getAllVideos(0, 20);
+      const result = await getAllVideos(0, 20, token);
       console.log('getAllVideos 응답:', result);
       setVideos(result.videos);
       setError(null);
@@ -24,7 +24,7 @@ export const useVideoList = () => {
   const searchByTag = async (tagName: string) => {
     try {
       setLoading(true);
-      const result = await searchVideosByTag(tagName, 0, 20);
+      const result = await searchVideosByTag(tagName, 0, 20, token);
       setVideos(result.videos);
       setError(null);
     } catch (err) {
@@ -38,7 +38,7 @@ export const useVideoList = () => {
   const searchByKeyword = async (keyword: string) => {
     try {
       setLoading(true);
-      const result = await searchVideosByKeyword(keyword, 0, 20);
+      const result = await searchVideosByKeyword(keyword, 0, 20, token);
       setVideos(result.videos);
       setError(null);
     } catch (err) {

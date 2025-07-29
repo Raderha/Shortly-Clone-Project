@@ -128,4 +128,14 @@ src/
 │   └ Context API 기반 전역 상태 관리  
 └── utils/  
     └ 유틸 함수, 상수, 날짜 포맷터 등  
-  
+
+src/api/
+├── index.ts          # 모든 API export
+├── config.ts         # 설정 및 엔드포인트
+├── types.ts          # 타입 정의
+├── apiUtils.ts       # 공통 유틸리티
+├── auth.ts           # 인증 API
+├── video.ts          # 비디오 API
+├── user.ts           # 사용자 API
+└── search.ts         # 검색 API  
+

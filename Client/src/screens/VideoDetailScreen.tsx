@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, FlatList, Alert, ActivityIndicator } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { VideoResponse, likeVideo, unlikeVideo, isVideoLiked, getAllVideos } from '../api/auth';
+import { VideoResponse, likeVideo, unlikeVideo, isVideoLiked, getAllVideos } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -264,14 +264,19 @@ const VideoDetailScreen = () => {
     const fetchVideos = async () => {
       try {
         setLoading(true);
-        const result = await getAllVideos(0, 50); // 더 많은 영상 가져오기
-        console.log('영상 목록 응답:', result);
+        console.log('[VideoDetailScreen] 토큰:', token ? '있음' : '없음');
+        const result = await getAllVideos(0, 50, token || undefined); // 토큰 전달
+        console.log('[VideoDetailScreen] 영상 목록 응답:', result);
         setVideos(result.videos);
         
         // 현재 영상의 인덱스 찾기
         const index = result.videos.findIndex(video => video.id === videoId);
         if (index !== -1) {
           setCurrentVideoIndex(index);
+          // API 응답에서 좋아요 상태 가져오기
+          const currentVideo = result.videos[index];
+          console.log('[VideoDetailScreen] 현재 영상 좋아요 상태:', currentVideo.isLiked);
+          setIsLiked(currentVideo.isLiked || false);
         }
       } catch (error) {
         console.error('영상 목록 가져오기 실패:', error);
@@ -281,21 +286,16 @@ const VideoDetailScreen = () => {
       }
     };
     fetchVideos();
-  }, [videoId]);
+  }, [videoId, token]);
 
-  // 좋아요 상태 확인
+  // 영상이 바뀔 때마다 좋아요 상태 업데이트
   useEffect(() => {
-    const checkLikeStatus = async () => {
-      if (!token || !videos[currentVideoIndex]) return;
-      try {
-        const liked = await isVideoLiked(videos[currentVideoIndex].id, token);
-        setIsLiked(liked);
-      } catch (error) {
-        console.error('좋아요 상태 확인 실패:', error);
-      }
-    };
-    checkLikeStatus();
-  }, [token, videos, currentVideoIndex]);
+    if (videos[currentVideoIndex]) {
+      const currentVideo = videos[currentVideoIndex];
+      console.log('[VideoDetailScreen] 영상 변경 - 좋아요 상태 업데이트:', currentVideo.isLiked);
+      setIsLiked(currentVideo.isLiked || false);
+    }
+  }, [videos, currentVideoIndex]);
 
   const handleLikePress = useCallback(async () => {
     if (!token || !videos[currentVideoIndex]) {
@@ -306,18 +306,34 @@ const VideoDetailScreen = () => {
     
     setIsLikeLoading(true);
     try {
-      let success = false;
+      const currentVideo = videos[currentVideoIndex];
+      console.log('[VideoDetailScreen] 좋아요 처리 시작:', currentVideo.id, '현재 상태:', isLiked);
+      
+      let result;
       if (isLiked) {
-        success = await unlikeVideo(videos[currentVideoIndex].id, token);
-        if (success) setIsLiked(false);
+        result = await unlikeVideo(currentVideo.id, token);
+        console.log('[VideoDetailScreen] 좋아요 취소 결과:', result);
       } else {
-        success = await likeVideo(videos[currentVideoIndex].id, token);
-        if (success) setIsLiked(true);
+        result = await likeVideo(currentVideo.id, token);
+        console.log('[VideoDetailScreen] 좋아요 추가 결과:', result);
       }
-      if (!success) {
-        Alert.alert('오류', isLiked ? '좋아요 취소에 실패했습니다.' : '좋아요에 실패했습니다.');
+      
+      if (result.success) {
+        const newIsLiked = result.isLiked !== undefined ? result.isLiked : !isLiked;
+        setIsLiked(newIsLiked);
+        
+        // 영상 목록의 좋아요 상태도 업데이트
+        setVideos(prev => prev.map((video, index) => 
+          index === currentVideoIndex ? { ...video, isLiked: newIsLiked } : video
+        ));
+        
+        console.log('[VideoDetailScreen] 좋아요 상태 업데이트 완료:', newIsLiked);
+      } else {
+        console.error('[VideoDetailScreen] 좋아요 처리 실패:', result.message);
+        Alert.alert('오류', result.message || '좋아요 처리에 실패했습니다.');
       }
     } catch (error) {
+      console.error('[VideoDetailScreen] 좋아요 처리 오류:', error);
       Alert.alert('오류', '좋아요 처리 중 오류가 발생했습니다.');
     } finally {
       setIsLikeLoading(false);

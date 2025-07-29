@@ -4,7 +4,7 @@ import {
   StyleSheet, 
   ScrollView 
 } from 'react-native';
-import { VideoResponse } from '../api/auth';
+import { VideoResponse } from '../api';
 import { VideoCard } from './VideoCard';
 import { LoadingState, ErrorState, EmptyState } from './VideoGridStates';
 
