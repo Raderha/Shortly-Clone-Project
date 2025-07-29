@@ -55,6 +55,7 @@ export const authFetch = async (
     if (body instanceof FormData) {
       // FormData인 경우 Content-Type을 제거 (브라우저가 자동 설정)
       delete requestHeaders['Content-Type'];
+      requestOptions.body = body;
     } else {
       requestOptions.body = JSON.stringify(body);
     }

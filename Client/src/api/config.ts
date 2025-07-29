@@ -1,10 +1,12 @@
+import { API_CONSTANTS } from '../constants';
+
 // API 설정
 export const API_CONFIG = {
   BASE_URL: process.env.REACT_APP_API_BASE_URL || 
             process.env.EXPO_PUBLIC_API_BASE_URL || 
             'http://192.168.0.18:8080/api',
-  TIMEOUT: 10000, // 10초
-  RETRY_ATTEMPTS: 3,
+  TIMEOUT: API_CONSTANTS.TIMEOUT,
+  RETRY_ATTEMPTS: API_CONSTANTS.RETRY_ATTEMPTS,
 } as const;
 
 // API 엔드포인트

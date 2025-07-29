@@ -10,6 +10,8 @@ import com.shortly.backend.domain.video.entity.VideoLike;
 import com.shortly.backend.domain.video.repository.TagRepository;
 import com.shortly.backend.domain.video.repository.VideoLikeRepository;
 import com.shortly.backend.domain.video.repository.VideoRepository;
+import com.shortly.backend.utils.Constants;
+import com.shortly.backend.utils.ValidationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -44,6 +46,27 @@ public class VideoService {
         System.out.println("[VideoService] 업로드 시작 - 제목: " + title + ", 파일 크기: " + videoFile.getSize());
         User currentUser = userService.getCurrentUserEntity();
         System.out.println("[VideoService] 현재 사용자: " + currentUser.getUsername());
+        
+        // 유효성 검사
+        ValidationUtils.ValidationResult fileValidation = ValidationUtils.validateFile(videoFile);
+        if (!fileValidation.isValid()) {
+            throw new IllegalArgumentException(fileValidation.getErrorMessage());
+        }
+        
+        ValidationUtils.ValidationResult titleValidation = ValidationUtils.validateTitle(title);
+        if (!titleValidation.isValid()) {
+            throw new IllegalArgumentException(titleValidation.getErrorMessage());
+        }
+        
+        ValidationUtils.ValidationResult descriptionValidation = ValidationUtils.validateDescription(description);
+        if (!descriptionValidation.isValid()) {
+            throw new IllegalArgumentException(descriptionValidation.getErrorMessage());
+        }
+        
+        ValidationUtils.ValidationResult tagsValidation = ValidationUtils.validateTags(tagNames);
+        if (!tagsValidation.isValid()) {
+            throw new IllegalArgumentException(tagsValidation.getErrorMessage());
+        }
         
         // 영상 길이 검증
         System.out.println("[VideoService] 영상 길이 검증 시작");
