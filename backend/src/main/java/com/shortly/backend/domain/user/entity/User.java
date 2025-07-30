@@ -10,6 +10,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import com.shortly.backend.domain.video.entity.Tag;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -47,6 +48,8 @@ public class User implements UserDetails {
     
     @Enumerated(EnumType.STRING)
     private Role role;
+    
+
     
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -113,6 +116,11 @@ public class User implements UserDetails {
     
     public void setPassword(String password) {
         this.password = password;
+    }
+    
+    @Override
+    public String getUsername() {
+        return this.username;
     }
     
     public enum Role {

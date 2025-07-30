@@ -162,3 +162,18 @@ export const apiCallWithRetry = async <T>(
   
   throw lastError;
 };
+
+// 공통 API 요청 함수
+export const apiRequest = async <T>(
+  endpoint: string,
+  options: ApiRequestOptions = {}
+): Promise<T> => {
+  const response = await authFetch(endpoint, options);
+  const result = await parseJsonResponse(response);
+  
+  if (!response.ok) {
+    throw new Error(result.message || `요청 실패 (${response.status})`);
+  }
+  
+  return result.data || result;
+};

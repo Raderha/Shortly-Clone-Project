@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions, FlatList, Alert, 
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { VideoResponse, likeVideo, unlikeVideo, isVideoLiked, getAllVideos } from '../api';
+import { subscribeToCreator, unsubscribeFromCreator, checkSubscriptionStatus } from '../api/subscription';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +19,8 @@ interface VideoItemProps {
   isLikeLoading: boolean;
   onBack: () => void;
   onSubscribe: () => void;
+  isSubscribed: boolean;
+  isSubscribeLoading: boolean;
   onVideoEnd: () => void;
   onNextVideo: () => void;
   onPrevVideo: () => void;
@@ -31,6 +34,8 @@ const VideoItem: React.FC<VideoItemProps> = ({
   isLikeLoading, 
   onBack, 
   onSubscribe,
+  isSubscribed,
+  isSubscribeLoading,
   onVideoEnd,
   onNextVideo,
   onPrevVideo
@@ -236,8 +241,14 @@ const VideoItem: React.FC<VideoItemProps> = ({
         <View style={styles.userInfo}>
           <Icon name="account-circle" size={28} color="#fff" />
           <Text style={styles.creatorName}>{video.owner?.username || '사용자'}</Text>
-          <TouchableOpacity style={styles.subscribeButton} onPress={onSubscribe}>
-            <Text style={styles.subscribeText}>구독</Text>
+          <TouchableOpacity 
+            style={[styles.subscribeButton, isSubscribed && styles.subscribedButton]} 
+            onPress={onSubscribe}
+            disabled={isSubscribeLoading}
+          >
+            <Text style={[styles.subscribeText, isSubscribed && styles.subscribedText]}>
+              {isSubscribed ? '구독중' : '구독'}
+            </Text>
           </TouchableOpacity>
         </View>
         <View style={styles.videoTitleContainer}>
@@ -257,6 +268,8 @@ const VideoDetailScreen = () => {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // 영상 목록 가져오기
@@ -277,6 +290,19 @@ const VideoDetailScreen = () => {
           const currentVideo = result.videos[index];
           console.log('[VideoDetailScreen] 현재 영상 좋아요 상태:', currentVideo.isLiked);
           setIsLiked(currentVideo.isLiked || false);
+          
+          // 구독 상태 확인
+          if (token && currentVideo.owner?.id) {
+            checkSubscriptionStatus(currentVideo.owner.id, token)
+              .then(response => {
+                if (response.success) {
+                  setIsSubscribed(response.data);
+                }
+              })
+              .catch(error => {
+                console.error('구독 상태 확인 실패:', error);
+              });
+          }
         }
       } catch (error) {
         console.error('영상 목록 가져오기 실패:', error);
@@ -370,6 +396,42 @@ const VideoDetailScreen = () => {
     }
   }, [currentVideoIndex, videos.length]);
 
+  const handleSubscribe = useCallback(async () => {
+    if (!token || !videos[currentVideoIndex]?.owner?.id) {
+      Alert.alert('로그인 필요', '구독 기능을 사용하려면 로그인이 필요합니다.');
+      return;
+    }
+    if (isSubscribeLoading) return;
+    
+    setIsSubscribeLoading(true);
+    try {
+      const currentVideo = videos[currentVideoIndex];
+      const creatorId = currentVideo.owner.id;
+      
+      let result;
+      if (isSubscribed) {
+        result = await unsubscribeFromCreator(creatorId, token);
+      } else {
+        result = await subscribeToCreator(creatorId, token);
+      }
+      
+      if (result.success) {
+        setIsSubscribed(!isSubscribed);
+        Alert.alert(
+          isSubscribed ? '구독 취소' : '구독 완료',
+          isSubscribed ? '구독이 취소되었습니다.' : '구독이 완료되었습니다.'
+        );
+      } else {
+        Alert.alert('오류', result.message || '구독 처리에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('구독 처리 오류:', error);
+      Alert.alert('오류', '구독 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubscribeLoading(false);
+    }
+  }, [token, videos, currentVideoIndex, isSubscribed, isSubscribeLoading]);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -412,7 +474,9 @@ const VideoDetailScreen = () => {
         isLikeLoading={isLikeLoading}
         onLikePress={handleLikePress}
         onBack={() => navigation.goBack()}
-        onSubscribe={() => {}}
+        onSubscribe={handleSubscribe}
+        isSubscribed={isSubscribed}
+        isSubscribeLoading={isSubscribeLoading}
         onVideoEnd={handleVideoEnd}
         onNextVideo={handleNextVideo}
         onPrevVideo={handlePrevVideo}
@@ -486,6 +550,8 @@ const styles = StyleSheet.create({
   creatorName: { marginLeft: 8, marginRight: 8, fontSize: 16, color: '#fff' },
   subscribeButton: { backgroundColor: '#222', borderRadius: 4, paddingHorizontal: 12, paddingVertical: 4 },
   subscribeText: { color: '#fff', fontSize: 14 },
+  subscribedButton: { backgroundColor: '#FF6B57' },
+  subscribedText: { color: '#fff', fontWeight: 'bold' },
   videoTitleContainer: {
     width: '100%',
   },

@@ -23,6 +23,7 @@ import {
 type RootStackParamList = {
   Home: undefined;
   Upload: undefined;
+  Subscriptions: undefined;
   Profile: undefined;
   VideoDetail: { videoId: number };
 };
@@ -55,7 +56,7 @@ export default function HomeScreen() {
     closeTagModal,
     setSearchKeyword,
     setNewTagName,
-  } = useHomeScreen(token);
+  } = useHomeScreen(token || undefined);
 
   const handleVideoPress = (videoId: number) => {
     navigation.navigate('VideoDetail', { videoId });
@@ -63,6 +64,10 @@ export default function HomeScreen() {
 
   const handleUploadPress = () => {
     navigation.navigate('Upload');
+  };
+
+  const handleSubscriptionsPress = () => {
+    navigation.navigate('Subscriptions');
   };
 
   const handleProfilePress = () => {
@@ -111,6 +116,7 @@ export default function HomeScreen() {
       {/* 하단 탭바 */}
       <TabBar
         onUploadPress={handleUploadPress}
+        onSubscriptionsPress={handleSubscriptionsPress}
         onProfilePress={handleProfilePress}
       />
 

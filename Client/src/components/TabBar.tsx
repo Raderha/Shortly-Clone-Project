@@ -4,11 +4,13 @@ import Icon from 'react-native-vector-icons/Ionicons';
 
 interface TabBarProps {
   onUploadPress: () => void;
+  onSubscriptionsPress: () => void;
   onProfilePress: () => void;
 }
 
 export const TabBar: React.FC<TabBarProps> = ({
   onUploadPress,
+  onSubscriptionsPress,
   onProfilePress,
 }) => {
   return (
@@ -17,7 +19,9 @@ export const TabBar: React.FC<TabBarProps> = ({
       <TouchableOpacity onPress={onUploadPress}>
         <Icon name="add-circle-outline" size={28} />
       </TouchableOpacity>
-      <Icon name="folder-outline" size={28} />
+      <TouchableOpacity onPress={onSubscriptionsPress}>
+        <Icon name="folder-outline" size={28} />
+      </TouchableOpacity>
       <TouchableOpacity onPress={onProfilePress}>
         <Icon name="person-outline" size={28} />
       </TouchableOpacity>
