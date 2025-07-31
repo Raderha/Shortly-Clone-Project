@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { VideoResponse, getAllVideos } from '../api';
-import { getSubscribedVideos } from '../api/subscription';
+import { getSubscribedVideos, getSubscribedCreators } from '../api/subscription';
 import { useAuth } from '../contexts/AuthContext';
-import { VideoCard } from '../components';
+import { VideoCard, CreatorIcon } from '../components';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { UserResponse } from '../api/types';
 
 type RootStackParamList = {
   Home: undefined;
@@ -17,18 +18,26 @@ type RootStackParamList = {
   VideoDetail: { videoId: number };
 };
 
+interface Creator {
+  id: number;
+  username: string;
+  profileImage?: string;
+}
+
 const SubscriptionsScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { token } = useAuth();
   const [videos, setVideos] = useState<VideoResponse[]>([]);
+  const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCreatorId, setSelectedCreatorId] = useState<number | null>(null);
 
   useEffect(() => {
-    loadSubscribedVideos();
+    loadSubscribedData();
   }, []);
 
-  const loadSubscribedVideos = async () => {
+  const loadSubscribedData = async () => {
     if (!token) {
       setError('로그인이 필요합니다');
       setLoading(false);
@@ -39,9 +48,17 @@ const SubscriptionsScreen = () => {
       setLoading(true);
       setError(null);
 
-      // 구독한 크리에이터들의 ID 목록 가져오기
-      const creatorIds = await getSubscribedVideos(token) as number[];
-      if (creatorIds.length === 0) {
+      // 구독한 크리에이터들의 정보 가져오기
+      const creatorsResponse = await getSubscribedCreators(token);
+      const creatorsData = creatorsResponse as any[];
+      const formattedCreators: Creator[] = creatorsData.map(creator => ({
+        id: creator.id,
+        username: creator.username,
+        profileImage: creator.profilePicture,
+      }));
+      setCreators(formattedCreators);
+
+      if (creatorsData.length === 0) {
         setVideos([]);
         setLoading(false);
         return;
@@ -49,27 +66,37 @@ const SubscriptionsScreen = () => {
 
       // 모든 영상 가져오기
       const allVideosResponse = await getAllVideos(0, 100, token);
-      
-      // VideoSearchResponse 구조에서 videos 배열 추출
       const allVideos = allVideosResponse?.videos || [];
       
-      console.log('구독한 크리에이터 ID들:', creatorIds);
-      console.log('전체 영상 개수:', allVideos.length);
-
       // 구독한 크리에이터들의 영상만 필터링
-      const subscribedVideos = allVideos.filter(video => {
-        const isSubscribedCreator = video.owner && creatorIds.includes(video.owner.id);
-        console.log(`영상 ${video.id} (${video.owner?.username}): 구독 여부 = ${isSubscribedCreator}`);
-        return isSubscribedCreator;
-      });
+      const creatorIds = creatorsData.map(creator => creator.id);
+      const subscribedVideos = allVideos.filter(video => 
+        video.owner && creatorIds.includes(video.owner.id)
+      );
 
       setVideos(subscribedVideos);
     } catch (error) {
-      console.error('구독 영상 로드 실패:', error);
-      setError('구독 영상을 불러오는데 실패했습니다');
+      console.error('구독 데이터 로드 실패:', error);
+      setError('구독 데이터를 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCreatorPress = (creatorId: number) => {
+    if (selectedCreatorId === creatorId) {
+      // 같은 크리에이터를 다시 클릭하면 전체 영상 표시
+      setSelectedCreatorId(null);
+    } else {
+      setSelectedCreatorId(creatorId);
+    }
+  };
+
+  const getFilteredVideos = () => {
+    if (selectedCreatorId === null) {
+      return videos; // 전체 영상 표시
+    }
+    return videos.filter(video => video.owner?.id === selectedCreatorId);
   };
 
   const handleVideoPress = (videoId: number) => {
@@ -77,7 +104,7 @@ const SubscriptionsScreen = () => {
   };
 
   const handleRetry = () => {
-    loadSubscribedVideos();
+    loadSubscribedData();
   };
 
   if (loading) {
@@ -85,7 +112,7 @@ const SubscriptionsScreen = () => {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6B57" />
-          <Text style={styles.loadingText}>구독 영상을 불러오는 중...</Text>
+          <Text style={styles.loadingText}>구독 데이터를 불러오는 중...</Text>
         </View>
       </SafeAreaView>
     );
@@ -105,12 +132,12 @@ const SubscriptionsScreen = () => {
     );
   }
 
-  if (videos.length === 0) {
+  if (creators.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.emptyContainer}>
-          <Icon name="folder-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyTitle}>구독한 영상이 없습니다</Text>
+          <Icon name="people-outline" size={64} color="#ccc" />
+          <Text style={styles.emptyTitle}>구독한 크리에이터가 없습니다</Text>
           <Text style={styles.emptySubtitle}>
             영상을 보고 크리에이터를 구독해보세요!
           </Text>
@@ -119,24 +146,68 @@ const SubscriptionsScreen = () => {
     );
   }
 
+  const filteredVideos = getFilteredVideos();
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>구독</Text>
+        <View style={styles.logoContainer}>
+          <Icon name="play-circle" size={32} color="#FF6B57" />
+          <Text style={styles.logoText}>Shortly</Text>
+        </View>
       </View>
-      <FlatList
-        data={videos}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <VideoCard
-            video={item}
-            onPress={() => handleVideoPress(item.id)}
-          />
-        )}
-        numColumns={2}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.videoList}
-      />
+
+      {/* 구독한 크리에이터들 */}
+      <View style={styles.creatorsContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.creatorsScroll}
+        >
+          {creators.map((creator) => (
+            <CreatorIcon
+              key={creator.id}
+              creator={creator}
+              isSelected={selectedCreatorId === creator.id}
+              onPress={() => handleCreatorPress(creator.id)}
+            />
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* 영상 목록 */}
+      {filteredVideos.length === 0 ? (
+        <View style={styles.emptyVideosContainer}>
+          <Icon name="videocam-outline" size={64} color="#ccc" />
+          <Text style={styles.emptyVideosTitle}>
+            {selectedCreatorId 
+              ? '이 크리에이터의 영상이 없습니다' 
+              : '구독한 영상이 없습니다'
+            }
+          </Text>
+          <Text style={styles.emptyVideosSubtitle}>
+            {selectedCreatorId 
+              ? '다른 크리에이터를 선택해보세요' 
+              : '크리에이터를 선택하여 영상을 확인해보세요'
+            }
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredVideos}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <VideoCard
+              video={item}
+              onPress={() => handleVideoPress(item.id)}
+            />
+          )}
+          numColumns={2}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.videoList}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -152,10 +223,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  headerTitle: {
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoText: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
+    marginLeft: 8,
+  },
+  creatorsContainer: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  creatorsScroll: {
+    paddingHorizontal: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -199,6 +283,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptySubtitle: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+  emptyVideosContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyVideosTitle: {
+    marginTop: 16,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#666',
+    textAlign: 'center',
+  },
+  emptyVideosSubtitle: {
     marginTop: 8,
     fontSize: 14,
     color: '#999',

@@ -29,6 +29,10 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     @Query("SELECT s.creator.id FROM Subscription s WHERE s.subscriber = :subscriber")
     List<Long> findCreatorIdsBySubscriber(@Param("subscriber") User subscriber);
     
+    // 사용자가 구독한 크리에이터들의 상세 정보 조회
+    @Query("SELECT s.creator FROM Subscription s WHERE s.subscriber = :subscriber")
+    List<User> findCreatorsBySubscriber(@Param("subscriber") User subscriber);
+    
     // 구독 관계 삭제
     int deleteBySubscriberAndCreator(User subscriber, User creator);
 } 

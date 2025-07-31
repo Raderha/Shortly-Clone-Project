@@ -11,4 +11,5 @@ export { default as UploadArea } from './UploadArea';
 export { default as VideoPreview } from './VideoPreview';
 export { default as UploadForm } from './UploadForm';
 export { default as UploadButton } from './UploadButton';
-export { default as UploadHeader } from './UploadHeader'; 
+export { default as UploadHeader } from './UploadHeader';
+export { default as CreatorIcon } from './CreatorIcon'; 

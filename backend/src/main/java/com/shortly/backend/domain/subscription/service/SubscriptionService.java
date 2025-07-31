@@ -2,6 +2,7 @@ package com.shortly.backend.domain.subscription.service;
 
 import com.shortly.backend.domain.subscription.entity.Subscription;
 import com.shortly.backend.domain.subscription.repository.SubscriptionRepository;
+import com.shortly.backend.domain.subscription.dto.CreatorDto;
 import com.shortly.backend.domain.user.entity.User;
 import com.shortly.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -71,5 +73,24 @@ public class SubscriptionService {
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
         
         return subscriptionRepository.findCreatorIdsBySubscriber(subscriber);
+    }
+    
+    // 사용자가 구독한 크리에이터들의 상세 정보 조회
+    public List<CreatorDto> getSubscribedCreators(Long subscriberId) {
+        User subscriber = userRepository.findById(subscriberId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+        
+        List<User> creators = subscriptionRepository.findCreatorsBySubscriber(subscriber);
+        
+        return creators.stream()
+                .map(creator -> CreatorDto.builder()
+                        .id(creator.getId())
+                        .username(creator.getUsername())
+                        .email(creator.getEmail())
+                        .profilePicture(creator.getProfilePicture())
+                        .createdAt(creator.getCreatedAt())
+                        .updatedAt(creator.getUpdatedAt())
+                        .build())
+                .collect(Collectors.toList());
     }
 } 

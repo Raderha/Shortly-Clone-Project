@@ -7,9 +7,28 @@ import { subscribeToCreator, unsubscribeFromCreator, checkSubscriptionStatus } f
 import { useAuth } from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ApiResponse } from '../api/types';
 
 const SERVER_URL = 'http://192.168.0.18:8080';
 const { height, width } = Dimensions.get('window');
+
+// API 응답 타입 정의
+interface SubscriptionStatusResponse {
+  success: boolean;
+  message: string;
+  data: boolean;
+}
+
+interface SubscriptionActionResponse {
+  success: boolean;
+  message: string;
+}
+
+interface LikeResponse {
+  success: boolean;
+  message: string;
+  isLiked?: boolean;
+}
 
 interface VideoItemProps {
   video: VideoResponse;
@@ -293,15 +312,27 @@ const VideoDetailScreen = () => {
           
           // 구독 상태 확인
           if (token && currentVideo.owner?.id) {
-            checkSubscriptionStatus(currentVideo.owner.id, token)
-              .then(response => {
-                if (response.success) {
+            try {
+              const subscriptionResponse = await checkSubscriptionStatus(currentVideo.owner.id, token);
+              console.log('[VideoDetailScreen] 구독 상태 확인 응답:', subscriptionResponse);
+              
+              // API 응답이 직접 boolean 값인 경우
+              if (typeof subscriptionResponse === 'boolean') {
+                setIsSubscribed(subscriptionResponse);
+                console.log('[VideoDetailScreen] 구독 상태 설정 (boolean):', subscriptionResponse);
+              }
+              // API 응답이 객체인 경우
+              else if (subscriptionResponse && typeof subscriptionResponse === 'object') {
+                const response = subscriptionResponse as any;
+                if (response.success && typeof response.data === 'boolean') {
                   setIsSubscribed(response.data);
+                  console.log('[VideoDetailScreen] 구독 상태 설정 (object):', response.data);
                 }
-              })
-              .catch(error => {
-                console.error('구독 상태 확인 실패:', error);
-              });
+              }
+            } catch (error) {
+              console.error('구독 상태 확인 실패:', error);
+              setIsSubscribed(false);
+            }
           }
         }
       } catch (error) {
@@ -314,14 +345,39 @@ const VideoDetailScreen = () => {
     fetchVideos();
   }, [videoId, token]);
 
-  // 영상이 바뀔 때마다 좋아요 상태 업데이트
+  // 영상이 바뀔 때마다 좋아요 상태와 구독 상태 업데이트
   useEffect(() => {
     if (videos[currentVideoIndex]) {
       const currentVideo = videos[currentVideoIndex];
       console.log('[VideoDetailScreen] 영상 변경 - 좋아요 상태 업데이트:', currentVideo.isLiked);
       setIsLiked(currentVideo.isLiked || false);
+      
+      // 구독 상태도 업데이트
+      if (token && currentVideo.owner?.id) {
+        checkSubscriptionStatus(currentVideo.owner.id, token)
+          .then((response: any) => {
+            console.log('[VideoDetailScreen] 영상 변경 - 구독 상태 업데이트:', response);
+            
+            // API 응답이 직접 boolean 값인 경우
+            if (typeof response === 'boolean') {
+              setIsSubscribed(response);
+              console.log('[VideoDetailScreen] 영상 변경 - 구독 상태 설정 (boolean):', response);
+            }
+            // API 응답이 객체인 경우
+            else if (response && typeof response === 'object') {
+              if (response.success && typeof response.data === 'boolean') {
+                setIsSubscribed(response.data);
+                console.log('[VideoDetailScreen] 영상 변경 - 구독 상태 설정 (object):', response.data);
+              }
+            }
+          })
+          .catch(error => {
+            console.error('구독 상태 확인 실패:', error);
+            setIsSubscribed(false);
+          });
+      }
     }
-  }, [videos, currentVideoIndex]);
+  }, [videos, currentVideoIndex, token]);
 
   const handleLikePress = useCallback(async () => {
     if (!token || !videos[currentVideoIndex]) {
@@ -335,12 +391,12 @@ const VideoDetailScreen = () => {
       const currentVideo = videos[currentVideoIndex];
       console.log('[VideoDetailScreen] 좋아요 처리 시작:', currentVideo.id, '현재 상태:', isLiked);
       
-      let result;
+      let result: LikeResponse;
       if (isLiked) {
-        result = await unlikeVideo(currentVideo.id, token);
+        result = await unlikeVideo(currentVideo.id, token) as LikeResponse;
         console.log('[VideoDetailScreen] 좋아요 취소 결과:', result);
       } else {
-        result = await likeVideo(currentVideo.id, token);
+        result = await likeVideo(currentVideo.id, token) as LikeResponse;
         console.log('[VideoDetailScreen] 좋아요 추가 결과:', result);
       }
       
@@ -408,20 +464,36 @@ const VideoDetailScreen = () => {
       const currentVideo = videos[currentVideoIndex];
       const creatorId = currentVideo.owner.id;
       
-      let result;
+      let result: any;
       if (isSubscribed) {
         result = await unsubscribeFromCreator(creatorId, token);
       } else {
         result = await subscribeToCreator(creatorId, token);
       }
       
+      console.log('[VideoDetailScreen] 구독 처리 결과:', result);
+      
+      // 응답이 null이거나 success 속성이 없는 경우 처리
+      if (!result) {
+        console.error('[VideoDetailScreen] 구독 처리 응답이 null입니다');
+        Alert.alert('오류', '구독 처리 중 오류가 발생했습니다.');
+        return;
+      }
+      
+      // API 응답 구조 확인: { success: boolean, message: string }
       if (result.success) {
-        setIsSubscribed(!isSubscribed);
+        // 구독 상태를 즉시 업데이트
+        const newSubscriptionStatus = !isSubscribed;
+        setIsSubscribed(newSubscriptionStatus);
+        
         Alert.alert(
           isSubscribed ? '구독 취소' : '구독 완료',
           isSubscribed ? '구독이 취소되었습니다.' : '구독이 완료되었습니다.'
         );
+        
+        console.log('[VideoDetailScreen] 구독 상태 업데이트 완료:', newSubscriptionStatus);
       } else {
+        console.error('[VideoDetailScreen] 구독 처리 실패:', result.message);
         Alert.alert('오류', result.message || '구독 처리에 실패했습니다.');
       }
     } catch (error) {

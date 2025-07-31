@@ -168,12 +168,27 @@ export const apiRequest = async <T>(
   endpoint: string,
   options: ApiRequestOptions = {}
 ): Promise<T> => {
+  console.log('[apiUtils] API 요청 시작:', endpoint, options.method);
   const response = await authFetch(endpoint, options);
+  console.log('[apiUtils] HTTP 응답 상태:', response.status, response.statusText);
+  
   const result = await parseJsonResponse(response);
+  console.log('[apiUtils] 파싱된 응답:', result);
   
   if (!response.ok) {
+    console.error('[apiUtils] API 요청 실패:', response.status, result);
     throw new Error(result.message || `요청 실패 (${response.status})`);
   }
   
-  return result.data || result;
+  // 백엔드 ApiResponse 구조에 맞게 처리
+  // { success: boolean, message: string, data?: T }
+  if (result && typeof result === 'object' && 'success' in result) {
+    // data가 null이거나 undefined인 경우 전체 응답 객체를 반환
+    const finalResult = (result.data !== undefined && result.data !== null) ? result.data : result;
+    console.log('[apiUtils] 최종 반환 결과:', finalResult);
+    return finalResult;
+  }
+  
+  console.log('[apiUtils] 최종 반환 결과:', result);
+  return result;
 };
