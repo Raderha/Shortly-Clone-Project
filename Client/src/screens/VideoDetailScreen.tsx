@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiResponse } from '../api/types';
+import CommentModal from '../components/CommentModal';
 
 const SERVER_URL = 'http://192.168.0.18:8080';
 const { height, width } = Dimensions.get('window');
@@ -43,6 +44,8 @@ interface VideoItemProps {
   onVideoEnd: () => void;
   onNextVideo: () => void;
   onPrevVideo: () => void;
+  onCommentPress: () => void;
+  isCommentModalOpen: boolean;
 }
 
 const VideoItem: React.FC<VideoItemProps> = ({ 
@@ -57,7 +60,9 @@ const VideoItem: React.FC<VideoItemProps> = ({
   isSubscribeLoading,
   onVideoEnd,
   onNextVideo,
-  onPrevVideo
+  onPrevVideo,
+  onCommentPress,
+  isCommentModalOpen
 }) => {
   const insets = useSafeAreaInsets();
   const videoRef = useRef<Video>(null);
@@ -80,8 +85,8 @@ const VideoItem: React.FC<VideoItemProps> = ({
       setIsVideoLoading(false);
       setIsPlaying(status.isPlaying);
       
-      // 영상이 끝났을 때 다음 영상으로 넘어가기
-      if (status.didJustFinish) {
+      // 영상이 끝났을 때 다음 영상으로 넘어가기 (댓글 모달이 닫혀있을 때만)
+      if (status.didJustFinish && !isCommentModalOpen) {
         console.log('영상 재생 완료, 다음 영상으로 넘어갑니다');
         onVideoEnd();
       }
@@ -166,7 +171,7 @@ const VideoItem: React.FC<VideoItemProps> = ({
           resizeMode={ResizeMode.CONTAIN}
           shouldPlay={isFocused}
           useNativeControls={false}
-          isLooping={false}
+          isLooping={isCommentModalOpen}
           isMuted={false}
           onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
           onLoadStart={handleLoadStart}
@@ -247,7 +252,10 @@ const VideoItem: React.FC<VideoItemProps> = ({
             </View>
           )}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity 
+          style={styles.iconButton}
+          onPress={onCommentPress}
+        >
           <Icon name="chat-bubble-outline" size={24} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
@@ -290,6 +298,7 @@ const VideoDetailScreen = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
 
   // 영상 목록 가져오기
   useEffect(() => {
@@ -552,6 +561,13 @@ const VideoDetailScreen = () => {
         onVideoEnd={handleVideoEnd}
         onNextVideo={handleNextVideo}
         onPrevVideo={handlePrevVideo}
+        onCommentPress={() => setCommentModalVisible(true)}
+        isCommentModalOpen={commentModalVisible}
+      />
+      <CommentModal 
+        visible={commentModalVisible}
+        onClose={() => setCommentModalVisible(false)}
+        videoId={currentVideo.id}
       />
     </View>
   );

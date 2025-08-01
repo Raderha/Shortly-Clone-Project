@@ -14,3 +14,6 @@ export * from './user';
 
 // 검색 관련 API
 export * from './search';
+
+// 댓글 관련 API
+export * from './comment';

@@ -36,4 +36,12 @@ export const API_ENDPOINTS = {
     FAVORITE_TAGS: '/user/favorites/tags',
     FAVORITE_TAG: (tagName: string) => `/user/favorites/tags/${encodeURIComponent(tagName)}`,
   },
+  
+  // 댓글
+  COMMENT: {
+    GET_BY_VIDEO: (videoId: number) => `/comments/video/${videoId}`,
+    CREATE: '/comments',
+    UPDATE: (commentId: number) => `/comments/${commentId}`,
+    DELETE: (commentId: number) => `/comments/${commentId}`,
+  },
 } as const;

@@ -111,3 +111,23 @@ export interface LikeResponse {
   message: string;
   isLiked?: boolean;
 }
+
+// 댓글 관련 타입
+export interface CommentRequest {
+  content: string;
+  videoId: number;
+}
+
+export interface CommentResponse {
+  id: number;
+  content: string;
+  user: {
+    id: number;
+    username: string;
+    profilePicture?: string;
+  };
+  videoId: number;
+  createdAt: string;
+  updatedAt: string;
+  isOwner: boolean;
+}
